@@ -1,0 +1,17 @@
+name = "CrowdControl"
+grammar = "crowdcontrol"
+path_suffixes = ["cc"]
+
+# CrowdControl uses # or // for line comments.
+line_comments = ["# ", "// "]
+
+brackets = [
+  { start = "{", end = "}", close = true, newline = true },
+  { start = "[", end = "]", close = true, newline = true },
+  { start = "(", end = ")", close = true, newline = false },
+  { start = "\"", end = "\"", close = true, newline = false, not_in = ["string", "comment"] },
+]
+
+# Completion triggers — useful once the LSP server grows completion
+# for field paths and operators.
+completion_query_characters = ["_", "."]

@@ -17,6 +17,13 @@ bin/
 docs/assets/wasm/cc.wasm
 docs/assets/wasm/wasm_exec.js
 
+# Zed dev extension staging — produced by scripts/install-zed-extension.sh
+/.zed-dev-extension/
+
+# Rust build output (Zed extension) — Cargo.lock IS tracked so
+# the extension is reproducible for anyone building from source.
+editors/zed/target/
+
 # Test
 *.test
 *.out
