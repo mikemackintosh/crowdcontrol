@@ -24,6 +24,11 @@ docs/assets/wasm/wasm_exec.js
 # the extension is reproducible for anyone building from source.
 editors/zed/target/
 
+# Tree-sitter grammar build outputs — regenerated on demand
+tree-sitter-crowdcontrol/crowdcontrol.wasm
+tree-sitter-crowdcontrol/node_modules/
+tree-sitter-crowdcontrol/build/
+
 # Test
 *.test
 *.out

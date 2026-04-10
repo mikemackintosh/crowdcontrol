@@ -1,34 +1,20 @@
 id = "crowdcontrol"
 name = "CrowdControl"
+description = "Support for the CrowdControl policy language — diagnostics, hover, completion, and tree-sitter syntax highlighting via the cc-lsp language server."
 version = "0.1.0"
 schema_version = 1
-description = "Support for the CrowdControl policy language: parser, diagnostics, hover, completion, and syntax highlighting."
-repository = "https://github.com/mikemackintosh/crowdcontrol"
 authors = ["Mike Mackintosh"]
-
-languages = ["languages/crowdcontrol"]
-
-[lib]
-kind = "Rust"
-version = "0.7.0"
-
-# The grammar lives at the top of this same repo under
-# tree-sitter-crowdcontrol/. For a local "Install Dev Extension"
-# install, Zed can load it via a file:// URL — run
-# ./scripts/install-zed-extension.sh which rewrites this block
-# with the absolute file:// path on your machine before installing.
-#
-# For Phase C (official registry submission), the grammar will be
-# split into its own repo at github.com/mikemackintosh/tree-sitter-crowdcontrol
-# and this block will reference that repo with a pinned commit SHA.
-[grammars.crowdcontrol]
 repository = "https://github.com/mikemackintosh/crowdcontrol"
-rev = "main"
 
 [language_servers.cc-lsp]
 name = "cc-lsp"
 language = "CrowdControl"
-languages = ["CrowdControl"]
 
-[language_servers.cc-lsp.language_ids]
-CrowdControl = "crowdcontrol"
+[grammars.crowdcontrol]
+# For local dev: scripts/install-zed-extension.sh rewrites this
+# block to a file:// URL pointing at the bundled grammar copy.
+# For Phase C (registry), this will be replaced with a proper
+# git URL to a standalone tree-sitter-crowdcontrol repo and a
+# pinned commit SHA.
+repository = "https://github.com/mikemackintosh/crowdcontrol"
+commit = "0000000000000000000000000000000000000000"
