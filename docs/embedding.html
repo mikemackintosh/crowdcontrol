@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Embedding in Go — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>Embedding in Go</h1>
+        <p class="lede">Use CrowdControl as a library from inside your service. Zero dependencies, pure stdlib.</p>
+
+        <h2 id="install">Install</h2>
+<pre><code class="language-bash">go get github.com/mikemackintosh/crowdcontrol</code></pre>
+
+        <h2 id="basic">Basic usage</h2>
+<pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "github.com/mikemackintosh/crowdcontrol"
+)
+
+func main() {
+    eng, err := crowdcontrol.New([]string{"./policies"})
+    if err != nil {
+        panic(err)
+    }
+
+    doc := map[string]any{
+        "user":     map[string]any{"name": "alex", "role": "intern"},
+        "request":  map[string]any{"action": "delete"},
+        "resource": map[string]any{"environment": "production"},
+    }
+
+    results := eng.Evaluate(doc)
+
+    for _, r := range results {
+        fmt.Printf("%s [%s] passed=%v: %s\n",
+            r.Rule, r.Kind, r.Passed, r.Message)
+    }
+}</code></pre>
+
+        <h2 id="with-schema">With schema validation</h2>
+<pre><code class="language-go">import (
+    "github.com/mikemackintosh/crowdcontrol"
+    "github.com/mikemackintosh/crowdcontrol/evaluator"
+    "github.com/mikemackintosh/crowdcontrol/types"
+)
+
+schema := &types.Schema{
+    Fields: map[string]types.FieldType{
+        "user.name":       types.FieldString,
+        "user.role":       types.FieldString,
+        "request.action":  types.FieldString,
+        "resource.environment": types.FieldString,
+    },
+}
+
+// validate at load time
+warnings := evaluator.ValidatePolicy(policies, schema)
+if len(warnings) > 0 {
+    fmt.Print(evaluator.FormatWarnings(warnings))
+}</code></pre>
+
+        <h2 id="with-explain">With explain mode</h2>
+<pre><code class="language-go">import "github.com/mikemackintosh/crowdcontrol/evaluator"
+
+eng := evaluator.NewFromPolicies(policies,
+    evaluator.WithExplain(true),
+)
+results := eng.Evaluate(doc)
+
+// each Result now has a populated Trace field
+fmt.Print(evaluator.FormatExplain(results))</code></pre>
+
+        <h2 id="default-deny">Default-deny mode</h2>
+<pre><code class="language-go">eng := evaluator.NewFromPolicies(policies,
+    evaluator.WithDefaultEffect(types.DefaultDeny),
+)</code></pre>
+
+        <h2 id="reloading">Hot-reloading policies</h2>
+        <p>Policies are loaded at <code>New()</code>. To reload, just call <code>New()</code> again and swap the engine. Since the engine has no mutable state beyond compiled rules, this is safe.</p>
+
+<pre><code class="language-go">var eng atomic.Pointer[crowdcontrol.Engine]
+
+func reload() error {
+    fresh, err := crowdcontrol.New([]string{"./policies"})
+    if err != nil {
+        return err
+    }
+    eng.Store(fresh)
+    return nil
+}
+
+func evaluate(doc map[string]any) []types.Result {
+    return eng.Load().Evaluate(doc)
+}</code></pre>
+
+        <nav class="page-nav">
+          <a href="examples.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← Example policies</span>
+          </a>
+          <a href="cli.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">CLI reference →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

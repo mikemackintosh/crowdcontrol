@@ -1,0 +1,57 @@
+# Never send these to the Docker build context — they're either local
+# build output, tooling state, or irrelevant to the image.
+
+.git
+.github
+docs
+editors
+
+# Go reference build artifacts
+/cc
+/cc-lsp
+/cc-test
+/go
+*.exe
+*.dll
+*.so
+*.dylib
+bin/
+
+# Editor / OS
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Python
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+**/.venv
+**/venv
+
+# Node
+**/node_modules
+**/*.tsbuildinfo
+**/dist
+
+# Ruby
+**/*.gem
+**/.bundle
+**/vendor/bundle
+
+# Kotlin / JVM
+**/*.class
+**/target
+**/.gradle
+**/build
+**/*.jar
+
+# PHP
+**/vendor
+**/composer.lock
+
+# Claude / local
+.claude
+memory

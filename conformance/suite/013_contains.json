@@ -1,0 +1,13 @@
+{
+  "name": "013_contains",
+  "description": "contains checks list membership",
+  "policy": "forbid \"interns-blocked\" {\n  user.groups contains \"interns\"\n  message \"interns may not perform this action\"\n}\n",
+  "input": {
+    "user": {"groups": ["dev-team", "interns"]}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "interns-blocked", "kind": "forbid", "passed": false, "message_contains": "interns"}
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+# Run the CrowdControl conformance suite against every SDK in parallel.
+#
+#   # run all of them
+#   docker compose -f docker-compose.yml up --build --abort-on-container-exit
+#
+#   # run one
+#   docker compose -f docker-compose.yml run --build python
+#
+# Every service builds from the repo root so each image has access to
+# conformance/suite/. Exit code 0 = pass, non-zero = failure in that SDK.
+
+services:
+  go:
+    image: crowdcontrol-go
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cc-conformance-go
+
+  python:
+    image: crowdcontrol-python
+    build:
+      context: .
+      dockerfile: sdks/python/Dockerfile
+    container_name: cc-conformance-python
+
+  typescript:
+    image: crowdcontrol-typescript
+    build:
+      context: .
+      dockerfile: sdks/typescript/Dockerfile
+    container_name: cc-conformance-typescript
+
+  ruby:
+    image: crowdcontrol-ruby
+    build:
+      context: .
+      dockerfile: sdks/ruby/Dockerfile
+    container_name: cc-conformance-ruby
+
+  php:
+    image: crowdcontrol-php
+    build:
+      context: .
+      dockerfile: sdks/php/Dockerfile
+    container_name: cc-conformance-php
+
+  kotlin:
+    image: crowdcontrol-kotlin
+    build:
+      context: .
+      dockerfile: sdks/kotlin/Dockerfile
+    container_name: cc-conformance-kotlin

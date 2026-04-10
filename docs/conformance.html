@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conformance suite — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>Conformance suite</h1>
+        <p class="lede">The conformance suite is a set of JSON test cases that every SDK must pass. It defines what "spec-compliant" means for a CrowdControl implementation.</p>
+
+        <h2 id="layout">Layout</h2>
+        <p>The suite lives under <code>conformance/suite/</code> in the repo. Each file is a single test case with a policy, an input document, and the expected results.</p>
+
+<pre><code class="language-json">{
+  "name": "basic-forbid",
+  "description": "A forbid rule fires when all conditions match",
+  "policy": "forbid \"no-interns\" {\n  user.role == \"intern\"\n  message \"no interns\"\n}",
+  "input": { "user": { "role": "intern" } },
+  "expected": [
+    {
+      "rule": "no-interns",
+      "kind": "forbid",
+      "passed": false,
+      "message": "no interns"
+    }
+  ]
+}</code></pre>
+
+        <h2 id="running">Running the suite</h2>
+        <p>Each SDK has a conformance runner that iterates every case in <code>conformance/suite/</code>, evaluates the policy against the input, and compares the results to <code>expected</code>.</p>
+
+<pre><code class="language-bash"># Go
+go test ./conformance/...
+
+# Python
+cd sdks/python &amp;&amp; python conformance_runner.py
+
+# TypeScript
+cd sdks/typescript &amp;&amp; npm run conformance
+
+# Ruby
+cd sdks/ruby &amp;&amp; ruby conformance_runner.rb
+
+# PHP
+cd sdks/php &amp;&amp; php conformance_runner.php
+
+# Kotlin
+cd sdks/kotlin &amp;&amp; ./gradlew conformance</code></pre>
+
+        <h2 id="running-in-docker">Running in Docker</h2>
+        <p>Every SDK ships a <code>Dockerfile</code> so you can run its conformance suite without installing the language runtime locally. Build from the repo root — the build context needs to include <code>conformance/</code> plus the SDK directory:</p>
+
+<pre><code class="language-bash"># single SDK
+docker build -f sdks/python/Dockerfile -t crowdcontrol-python .
+docker run --rm crowdcontrol-python
+
+# all SDKs at once (parallel, via docker compose)
+docker compose up --build --abort-on-container-exit
+
+# or the helper script (serial, prints a pass/fail summary)
+./sdks/run-conformance.sh</code></pre>
+
+        <p>Each container exits <code>0</code> on full pass and non-zero on any failure, so they plug straight into CI.</p>
+
+        <h2 id="spec-compliance">What "spec-compliant" means</h2>
+        <p>An SDK is considered spec-compliant when:</p>
+        <ol>
+          <li>It implements every construct in <a href="https://github.com/mikemackintosh/crowdcontrol/blob/main/SPEC.md">SPEC.md</a>.</li>
+          <li>It passes every case in <code>conformance/suite/</code>.</li>
+          <li>Its result objects (<code>rule</code>, <code>kind</code>, <code>passed</code>, <code>message</code>) match the Go reference exactly for the same input.</li>
+          <li>Its trace output is a structural superset of what the spec defines.</li>
+        </ol>
+
+        <h2 id="adding-cases">Adding new cases</h2>
+        <p>When the spec changes, the conformance suite is updated first. SDKs must then be updated to match. The Go implementation is the reference for any behavior not explicitly nailed down by SPEC.md.</p>
+
+        <nav class="page-nav">
+          <a href="sdks.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← SDKs</span>
+          </a>
+          <a href="comparison.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">Comparison →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

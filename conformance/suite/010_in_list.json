@@ -1,0 +1,13 @@
+{
+  "name": "010_in_list",
+  "description": "in [literal list] membership check",
+  "policy": "forbid \"sensitive-resource\" {\n  resource.type in [\"iam_role\", \"kms_key\", \"secret\"]\n  message \"sensitive resource type\"\n}\n",
+  "input": {
+    "resource": {"type": "kms_key"}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "sensitive-resource", "kind": "forbid", "passed": false, "message_contains": "sensitive"}
+    ]
+  }
+}

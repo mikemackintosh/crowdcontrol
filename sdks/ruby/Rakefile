@@ -1,0 +1,24 @@
+# frozen_string_literal: true
+
+# Stdlib-only Rakefile. No external gems required.
+# Targets:
+#   rake test         — run all minitest files under test/
+#   rake conformance  — run the conformance suite
+#   rake              — default: test + conformance
+
+require "rake/testtask"
+
+Rake::TestTask.new(:test) do |t|
+  t.libs << "lib"
+  t.libs << "test"
+  t.test_files = FileList["test/test_*.rb"]
+  t.warning = false
+  t.verbose = false
+end
+
+desc "Run the shared conformance suite against the Ruby SDK"
+task :conformance do
+  ruby "-I", "lib", "conformance_runner.rb"
+end
+
+task default: %i[test conformance]

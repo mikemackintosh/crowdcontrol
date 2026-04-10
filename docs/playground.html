@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Playground — CrowdControl</title>
+  <meta name="description" content="Try CrowdControl in your browser. The entire engine runs client-side via WebAssembly — nothing is sent to a server.">
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* Playground-specific layout. Loaded inline so the page renders
+       correctly before the external CSS is parsed on slow links. */
+    main.content-area { padding: 32px 32px 60px; }
+    article.doc { max-width: 1200px; }
+
+    .playground-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .playground-header h1 {
+      margin: 0;
+      font-size: 26px;
+    }
+    .playground-header .beta {
+      padding: 3px 10px;
+      background: rgba(245, 166, 35, 0.12);
+      color: var(--warning);
+      border: 1px solid rgba(245, 166, 35, 0.3);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .playground-header .spacer { flex: 1; }
+    .playground-header select,
+    .playground-header button {
+      height: 34px;
+      padding: 0 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+    .playground-header select:hover,
+    .playground-header button:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-secondary);
+    }
+    .playground-header button.primary {
+      background: var(--accent);
+      color: #051a10;
+      border-color: var(--accent);
+    }
+    .playground-header button.primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+    .playground-header button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .playground-header .shortcut {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      padding: 2px 6px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-left: 6px;
+    }
+
+    .status-bar {
+      padding: 8px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .status-dot.ready { background: var(--accent); animation: none; }
+    .status-dot.error { background: var(--error); animation: none; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    .editors {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 900px) { .editors { grid-template-columns: 1fr; } }
+
+    .editor-pane {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 360px;
+    }
+    .editor-pane .editor-title {
+      padding: 8px 14px;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .editor-pane .editor-title .info {
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text-tertiary);
+      font-size: 11px;
+    }
+    .editor-pane textarea {
+      flex: 1;
+      width: 100%;
+      background: transparent;
+      color: var(--text-primary);
+      border: none;
+      outline: none;
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.65;
+      resize: none;
+      tab-size: 2;
+      white-space: pre;
+      overflow: auto;
+    }
+    .editor-pane textarea::placeholder { color: var(--text-tertiary); }
+
+    .results {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .results-header {
+      padding: 10px 16px;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .results-header .title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+    }
+    .decision-badge {
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .decision-badge.allow { background: rgba(72, 213, 151, 0.15); color: var(--accent); border: 1px solid rgba(72, 213, 151, 0.3); }
+    .decision-badge.deny  { background: rgba(229, 72, 77, 0.15); color: var(--error); border: 1px solid rgba(229, 72, 77, 0.3); }
+    .decision-badge.error { background: rgba(245, 166, 35, 0.15); color: var(--warning); border: 1px solid rgba(245, 166, 35, 0.3); }
+    .decision-badge.empty { background: var(--bg-secondary); color: var(--text-tertiary); border: 1px solid var(--border); }
+    .results-header .elapsed { color: var(--text-tertiary); font-size: 12px; font-family: var(--font-mono); }
+    .results-header .spacer { flex: 1; }
+    .results-header label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .results-header input[type=checkbox] { cursor: pointer; }
+
+    .results-body {
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text-primary);
+      max-height: 360px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .results-body .empty-state {
+      color: var(--text-tertiary);
+      font-family: var(--font-sans);
+      font-style: italic;
+    }
+    .results-body .rule-line {
+      display: flex;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      align-items: flex-start;
+    }
+    .results-body .rule-line:last-child { border-bottom: none; }
+    .results-body .rule-kind {
+      min-width: 58px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-align: center;
+      font-family: var(--font-sans);
+    }
+    .results-body .kind-forbid { background: rgba(229, 72, 77, 0.12); color: var(--error); }
+    .results-body .kind-warn   { background: rgba(245, 166, 35, 0.12); color: var(--warning); }
+    .results-body .kind-permit { background: rgba(72, 213, 151, 0.12); color: var(--accent); }
+    .results-body .rule-status {
+      min-width: 70px;
+      font-weight: 600;
+    }
+    .results-body .status-denied { color: var(--error); }
+    .results-body .status-passed { color: var(--accent); }
+    .results-body .rule-name { color: var(--text-primary); min-width: 0; flex: 1; }
+    .results-body .rule-message {
+      display: block;
+      color: var(--text-secondary);
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .trace-block {
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .error-block {
+      padding: 12px 14px;
+      background: rgba(229, 72, 77, 0.08);
+      border: 1px solid rgba(229, 72, 77, 0.3);
+      border-left: 3px solid var(--error);
+      border-radius: 6px;
+      color: var(--error);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+    .privacy-note {
+      margin-top: 18px;
+      padding: 10px 14px;
+      background: rgba(72, 213, 151, 0.05);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .privacy-note strong { color: var(--accent); }
+  </style>
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc" style="max-width: 1200px;">
+        <div class="playground-header">
+          <h1>Playground</h1>
+          <span class="beta">beta</span>
+          <div class="spacer"></div>
+          <select id="preset" aria-label="Load a preset">
+            <option value="">Preset…</option>
+            <option value="intro">Intro: interns can't delete prod</option>
+            <option value="terraform">Terraform: blast radius</option>
+            <option value="iam">IAM: requires security approval</option>
+            <option value="k8s">Kubernetes: no :latest in prod</option>
+            <option value="pr">GitHub: draft PR guardrails</option>
+            <option value="risk">Risk score (arithmetic)</option>
+          </select>
+          <button id="share-btn" title="Copy a shareable URL to your clipboard">Share</button>
+          <button id="run-btn" class="primary" disabled>Run <span class="shortcut">⌘⏎</span></button>
+        </div>
+
+        <div class="status-bar">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">Loading WebAssembly engine…</span>
+          <span class="spacer" style="flex:1"></span>
+          <span id="rule-count" style="color: var(--text-tertiary)"></span>
+        </div>
+
+        <div class="editors">
+          <div class="editor-pane">
+            <div class="editor-title">
+              policy.cc
+              <span class="info" id="policy-info"></span>
+            </div>
+            <textarea id="policy-editor" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="# Write a CrowdControl policy..."></textarea>
+          </div>
+          <div class="editor-pane">
+            <div class="editor-title">
+              input.json
+              <span class="info">JSON document to evaluate</span>
+            </div>
+            <textarea id="input-editor" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder='{ "user": { "role": "intern" } }'></textarea>
+          </div>
+        </div>
+
+        <div class="results">
+          <div class="results-header">
+            <span class="title">Result</span>
+            <span class="decision-badge empty" id="decision">—</span>
+            <span class="elapsed" id="elapsed"></span>
+            <span class="spacer"></span>
+            <label><input type="checkbox" id="explain-toggle"> Explain</label>
+          </div>
+          <div class="results-body" id="results">
+            <div class="empty-state">Hit <strong>Run</strong> or press <code>⌘⏎</code> / <code>Ctrl+⏎</code> to evaluate.</div>
+          </div>
+        </div>
+
+        <div class="privacy-note">
+          <strong>Runs 100% in your browser.</strong> The entire CrowdControl engine is compiled to WebAssembly (~1 MB gzipped) and loaded once per page. Your policies and input never leave your machine — no server round-trip, no telemetry. The "Share" button encodes your current state into the URL fragment so you can copy/paste a link; the fragment is never sent to the server.
+        </div>
+      </article>
+    </main>
+  </div>
+
+  <!-- WebAssembly loader (provided by Go) -->
+  <script src="assets/wasm/wasm_exec.js"></script>
+  <script>
+    // Presets: each one is { policy, input } pair matching a common
+    // use case. Written as plain JS strings so we don't need a fetch
+    // round-trip.
+    const PRESETS = {
+      intro: {
+        policy: `forbid "no-interns-delete-prod" {
+  description "Interns cannot delete production resources"
+  owner       "platform-security"
+
+  user.role == "intern"
+  request.action == "delete"
+  resource.environment == "production"
+
+  unless user.groups contains "platform-oncall"
+
+  message "{user.name} cannot delete {resource.name} in prod"
+}`,
+        input: `{
+  "user": {
+    "name": "alex",
+    "role": "intern",
+    "groups": ["engineering"]
+  },
+  "request": { "action": "delete" },
+  "resource": { "name": "orders-db", "environment": "production" }
+}`
+      },
+      terraform: {
+        policy: `forbid "blast-radius" {
+  description "Large destructive changes require platform-team approval"
+  owner       "platform"
+
+  count(plan.destroys) > 5
+
+  unless author.teams contains "platform-team"
+
+  message "too many destroys ({count(plan.destroys)}) — needs platform-team"
+}`,
+        input: `{
+  "author": { "name": "alex", "teams": ["backend"] },
+  "plan": {
+    "destroys": [
+      "aws_s3_bucket.logs",
+      "aws_s3_bucket.staging",
+      "aws_iam_role.legacy",
+      "aws_rds_instance.old",
+      "aws_ec2_instance.builder",
+      "aws_kms_key.retired",
+      "aws_cloudwatch_log_group.tmp"
+    ]
+  }
+}`
+      },
+      iam: {
+        policy: `forbid "sensitive-iam" {
+  description "IAM changes require security team or explicit approval"
+  owner       "security"
+  link        "https://wiki.example.com/iam-policy"
+
+  resource.type matches "aws_iam_*"
+
+  unless author.teams contains "security"
+  unless labels contains "security-approved"
+  unless pr.approvals >= 2
+
+  message "{resource.type}.{resource.name} requires security approval"
+}`,
+        input: `{
+  "author": { "name": "alex", "teams": ["backend"] },
+  "resource": { "type": "aws_iam_role", "name": "app-runner" },
+  "labels": ["change-review"],
+  "pr": { "approvals": 1 }
+}`
+      },
+      k8s: {
+        policy: `forbid "no-latest-prod" {
+  description "Production workloads must pin image tags"
+
+  resource.kind == "Deployment"
+  resource.namespace == "production"
+  any resource.containers matches "*:latest"
+
+  message "production deployments must not use :latest image tags"
+}`,
+        input: `{
+  "resource": {
+    "kind": "Deployment",
+    "namespace": "production",
+    "name": "api",
+    "containers": [
+      "registry.example.com/api:v2.3.1",
+      "registry.example.com/sidecar:latest"
+    ]
+  }
+}`
+      },
+      pr: {
+        policy: `forbid "no-draft-production" {
+  description "Draft PRs cannot target production"
+  pr.draft == true
+  project.workspace == "production"
+  message "draft PRs cannot target production"
+}
+
+forbid "production-approvals" {
+  description "Production deploys require at least 2 approvals"
+  project.workspace == "production"
+  pr.approvals < 2
+  message "production requires 2 approvals (currently {pr.approvals})"
+}`,
+        input: `{
+  "pr": { "draft": true, "approvals": 1 },
+  "project": { "workspace": "production" }
+}`
+      },
+      risk: {
+        policy: `forbid "risk-score" {
+  description "Composite risk score: destroys count triple"
+
+  count(plan.destroys) * 3 + count(plan.creates) > 20
+
+  unless author.teams contains "platform-team"
+
+  message "risk score exceeded: {count(plan.destroys)} destroys, {count(plan.creates)} creates"
+}`,
+        input: `{
+  "author": { "name": "alex", "teams": ["backend"] },
+  "plan": {
+    "destroys": ["r1", "r2", "r3", "r4"],
+    "creates": ["n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9", "n10"]
+  }
+}`
+      }
+    };
+
+    const $ = id => document.getElementById(id);
+    const policyEditor = $('policy-editor');
+    const inputEditor = $('input-editor');
+    const runBtn = $('run-btn');
+    const shareBtn = $('share-btn');
+    const preset = $('preset');
+    const explainToggle = $('explain-toggle');
+    const statusDot = $('status-dot');
+    const statusText = $('status-text');
+    const ruleCount = $('rule-count');
+    const policyInfo = $('policy-info');
+    const decision = $('decision');
+    const elapsed = $('elapsed');
+    const results = $('results');
+
+    // Load initial state from URL fragment, preset, or the default intro.
+    function loadInitialState() {
+      const hash = location.hash.slice(1);
+      if (hash) {
+        try {
+          const state = JSON.parse(decodeURIComponent(escape(atob(hash))));
+          if (state.p) policyEditor.value = state.p;
+          if (state.i) inputEditor.value = state.i;
+          if (state.e) explainToggle.checked = true;
+          return;
+        } catch (_) { /* fall through */ }
+      }
+      applyPreset('intro');
+    }
+
+    function applyPreset(key) {
+      const p = PRESETS[key];
+      if (!p) return;
+      policyEditor.value = p.policy;
+      inputEditor.value = p.input;
+      updatePolicyInfo();
+      if (window.ccReady) runEvaluation();
+    }
+
+    preset.addEventListener('change', (e) => {
+      if (e.target.value) applyPreset(e.target.value);
+      e.target.value = '';
+    });
+
+    // Encode current state into the URL fragment (base64 JSON) and
+    // copy to clipboard.
+    shareBtn.addEventListener('click', async () => {
+      const state = {
+        p: policyEditor.value,
+        i: inputEditor.value,
+        e: explainToggle.checked ? 1 : 0,
+      };
+      const frag = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+      location.hash = frag;
+      try {
+        await navigator.clipboard.writeText(location.href);
+        const original = shareBtn.textContent;
+        shareBtn.textContent = 'Copied ✓';
+        setTimeout(() => { shareBtn.textContent = original; }, 1500);
+      } catch (_) {
+        // Clipboard API unavailable; the URL is still updated.
+      }
+    });
+
+    // Debounced rule counter that hits ccParse on every keystroke.
+    let parseTimer;
+    function updatePolicyInfo() {
+      clearTimeout(parseTimer);
+      parseTimer = setTimeout(() => {
+        if (!window.ccParse) return;
+        const r = window.ccParse(policyEditor.value);
+        if (r.ok) {
+          policyInfo.textContent = `${r.rule_count} rule${r.rule_count === 1 ? '' : 's'}`;
+          policyInfo.style.color = 'var(--text-tertiary)';
+        } else {
+          policyInfo.textContent = 'parse error';
+          policyInfo.style.color = 'var(--error)';
+        }
+      }, 250);
+    }
+    policyEditor.addEventListener('input', updatePolicyInfo);
+
+    // Keyboard: Ctrl/Cmd+Enter runs.
+    function isRunChord(e) {
+      return e.key === 'Enter' && (e.metaKey || e.ctrlKey);
+    }
+    policyEditor.addEventListener('keydown', (e) => { if (isRunChord(e)) { e.preventDefault(); runEvaluation(); } });
+    inputEditor.addEventListener('keydown', (e) => { if (isRunChord(e)) { e.preventDefault(); runEvaluation(); } });
+
+    runBtn.addEventListener('click', runEvaluation);
+
+    // Main evaluator entry. Reads both textareas, calls ccEvaluate,
+    // renders the result pane.
+    function runEvaluation() {
+      if (!window.ccEvaluate) return;
+      const policy = policyEditor.value;
+      const input = inputEditor.value.trim() || '{}';
+      const out = window.ccEvaluate(policy, input, {
+        explain: explainToggle.checked,
+      });
+      renderResult(out);
+    }
+
+    function renderResult(out) {
+      results.innerHTML = '';
+
+      if (!out.ok) {
+        decision.textContent = 'error';
+        decision.className = 'decision-badge error';
+        elapsed.textContent = '';
+        const err = document.createElement('div');
+        err.className = 'error-block';
+        err.textContent = out.error || 'unknown error';
+        results.appendChild(err);
+        return;
+      }
+
+      decision.textContent = out.decision;
+      decision.className = 'decision-badge ' + out.decision;
+      elapsed.textContent = out.elapsed_us + ' µs';
+
+      if (!out.results || out.results.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = 'Policy is valid but has no rules.';
+        results.appendChild(empty);
+        return;
+      }
+
+      for (const r of out.results) {
+        const line = document.createElement('div');
+        line.className = 'rule-line';
+
+        const kindTag = document.createElement('span');
+        kindTag.className = 'rule-kind kind-' + r.kind;
+        kindTag.textContent = r.kind;
+        line.appendChild(kindTag);
+
+        const status = document.createElement('span');
+        status.className = 'rule-status ' + (r.passed ? 'status-passed' : 'status-denied');
+        status.textContent = r.passed ? 'passed' : 'fired';
+        line.appendChild(status);
+
+        const name = document.createElement('span');
+        name.className = 'rule-name';
+        const nameText = document.createElement('strong');
+        nameText.textContent = r.rule;
+        name.appendChild(nameText);
+        if (r.message) {
+          const msg = document.createElement('span');
+          msg.className = 'rule-message';
+          msg.textContent = '→ ' + r.message;
+          name.appendChild(msg);
+        }
+        line.appendChild(name);
+
+        results.appendChild(line);
+      }
+
+      if (out.trace) {
+        const pre = document.createElement('div');
+        pre.className = 'trace-block';
+        pre.textContent = out.trace;
+        results.appendChild(pre);
+      }
+    }
+
+    // WASM bootstrap. `Go` is defined by wasm_exec.js.
+    window.onCcReady = () => {
+      statusDot.classList.add('ready');
+      statusText.textContent = 'CrowdControl ' + window.ccVersion + ' ready — engine runs in your browser';
+      runBtn.disabled = false;
+      updatePolicyInfo();
+      runEvaluation();
+    };
+
+    async function boot() {
+      try {
+        const go = new Go();
+        const res = await WebAssembly.instantiateStreaming(
+          fetch('assets/wasm/cc.wasm'),
+          go.importObject
+        );
+        go.run(res.instance);
+      } catch (err) {
+        statusDot.classList.add('error');
+        statusText.textContent = 'Failed to load WebAssembly: ' + err.message;
+      }
+    }
+
+    loadInitialState();
+    boot();
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "011_matches_glob",
+  "description": "matches uses glob-style patterns (* prefix/suffix)",
+  "policy": "forbid \"prod-prefix\" {\n  resource.name matches \"prod-*\"\n  message \"production resource\"\n}\n",
+  "input": {
+    "resource": {"name": "prod-database-1"}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "prod-prefix", "kind": "forbid", "passed": false, "message_contains": "production"}
+    ]
+  }
+}

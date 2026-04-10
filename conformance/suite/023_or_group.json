@@ -1,0 +1,13 @@
+{
+  "name": "023_or_group",
+  "description": "or-group: condition is true if any sub-condition is true",
+  "policy": "forbid \"non-stable\" {\n  branch != \"main\" or branch != \"master\"\n  message \"only main or master allowed\"\n}\n",
+  "input": {
+    "branch": "feature-x"
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "non-stable", "kind": "forbid", "passed": false, "message_contains": "only main"}
+    ]
+  }
+}

@@ -1,0 +1,63 @@
+# Binaries
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Root-level Go build outputs (go build ./cmd/cc drops the binary here)
+/cc
+/cc-lsp
+/cc-test
+# Never commit a bare 'go' file — it was added by accident once
+/go
+
+# WASM build artifacts for the docs playground — built by
+# .github/workflows/pages.yml on every deploy, not checked in.
+docs/assets/wasm/cc.wasm
+docs/assets/wasm/wasm_exec.js
+
+# Test
+*.test
+*.out
+coverage.txt
+
+# Go workspace
+go.work
+go.work.sum
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Language-specific build artifacts
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Node / TypeScript
+node_modules/
+*.tsbuildinfo
+
+# Ruby
+*.gem
+.bundle/
+vendor/bundle
+
+# Kotlin / JVM
+*.class
+target/
+.gradle/
+build/
+
+# PHP
+vendor/
+composer.lock

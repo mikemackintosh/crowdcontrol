@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conditions & operators — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>Conditions & operators</h1>
+        <p class="lede">Reference table for every operator in the CrowdControl language, with examples.</p>
+
+        <h2 id="operators">Operator table</h2>
+        <div class="table-wrap">
+        <table>
+          <thead><tr><th>Operator</th><th>LHS</th><th>RHS</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td><code>==</code> <code>!=</code></td><td>any</td><td>any</td><td>string-coerced equality</td></tr>
+            <tr><td><code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code></td><td>number</td><td>number</td><td>numeric comparison</td></tr>
+            <tr><td><code>in</code></td><td>string</td><td>list of strings</td><td>LHS appears in RHS</td></tr>
+            <tr><td><code>contains</code></td><td>list or string</td><td>string</td><td>RHS appears in LHS</td></tr>
+            <tr><td><code>intersects</code></td><td>list</td><td>list</td><td>LHS and RHS share at least one element</td></tr>
+            <tr><td><code>is_subset</code></td><td>list</td><td>list</td><td>every element of LHS appears in RHS</td></tr>
+            <tr><td><code>matches</code></td><td>string</td><td>glob</td><td>glob match (<code>*</code> wildcards)</td></tr>
+            <tr><td><code>matches_regex</code></td><td>string</td><td>RE2 regex</td><td>regex match</td></tr>
+            <tr><td><code>has</code></td><td>n/a</td><td>field path</td><td>path exists in document</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h2 id="coercion">Numeric coercion</h2>
+        <p>When a comparison expects a number, strings that look like numbers are coerced via <code>strconv.ParseFloat</code>. This means <code>"42" == 42</code> is true (both sides are string-coerced for equality) and <code>"42" &gt; 10</code> is true (numeric comparison coerces).</p>
+
+        <h2 id="absent-fields">Absent fields</h2>
+        <p>If any segment of a dotted path is missing or non-map, the path resolves to "absent". Comparing an absent field to anything is false; <code>has</code> returns false; <code>count()</code> returns 0; <code>len()</code> returns 0.</p>
+
+        <h2 id="short-circuit">Short-circuit evaluation</h2>
+        <p>In normal evaluation, conditions short-circuit: if any condition in a rule body is false, later conditions aren't evaluated. In <a href="explain.html">explain mode</a>, all conditions are evaluated so the trace is complete.</p>
+
+        <nav class="page-nav">
+          <a href="language.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← Language reference</span>
+          </a>
+          <a href="schema.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">Schema validation →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

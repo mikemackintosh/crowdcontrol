@@ -1,0 +1,15 @@
+{
+  "name": "005_unless_saves",
+  "description": "unless clause prevents a forbid from firing",
+  "policy": "forbid \"prod-needs-approval\" {\n  resource.env == \"production\"\n  request.approved == false\n  unless user.role == \"admin\"\n  message \"prod requires approval\"\n}\n",
+  "input": {
+    "resource": {"env": "production"},
+    "request": {"approved": false},
+    "user": {"role": "admin"}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "prod-needs-approval", "kind": "forbid", "passed": true}
+    ]
+  }
+}

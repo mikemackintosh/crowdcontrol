@@ -1,0 +1,235 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+#
+# CrowdControl release config.
+#
+# Run a dry-run locally:
+#   goreleaser release --snapshot --clean --skip=publish,sign
+#
+# Full release happens automatically on 'v*' tag push via
+# .github/workflows/release.yml.
+
+version: 2
+
+project_name: crowdcontrol
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: cc
+    binary: cc
+    main: ./cmd/cc
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/mikemackintosh/crowdcontrol.Version={{.Version}}
+
+  - id: cc-lsp
+    binary: cc-lsp
+    main: ./cmd/cc-lsp
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/mikemackintosh/crowdcontrol.Version={{.Version}}
+
+archives:
+  - id: default
+    ids:
+      - cc
+      - cc-lsp
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- if eq .Os "darwin" }}darwin
+      {{- else }}{{ .Os }}{{ end }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - README.md
+      - LICENSE
+      - SPEC.md
+      - DESIGN.md
+      - CONTRIBUTING.md
+      - src: examples/**
+        dst: examples
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+snapshot:
+  version_template: '{{ incpatch .Version }}-snapshot-{{ .ShortCommit }}'
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^test:'
+      - '^chore\(deps\):'
+      - 'merge conflict'
+      - 'Merge pull request'
+      - 'Merge branch'
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: Bug fixes
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: Performance
+      regexp: '^.*?perf(\(.+\))??!?:.+$'
+      order: 2
+    - title: Documentation
+      regexp: '^.*?docs(\(.+\))??!?:.+$'
+      order: 3
+    - title: Other
+      order: 999
+
+release:
+  github:
+    owner: mikemackintosh
+    name: crowdcontrol
+  name_template: 'v{{.Version}}'
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## CrowdControl {{ .Version }}
+
+    A small, readable policy language for gating actions on structured data.
+
+    **Install:**
+    ```bash
+    # Pre-built binary (recommended)
+    curl -L https://github.com/mikemackintosh/crowdcontrol/releases/download/{{ .Tag }}/crowdcontrol_{{ .Version }}_$(uname -s)_$(uname -m).tar.gz | tar xz
+
+    # Or via go install
+    go install github.com/mikemackintosh/crowdcontrol/cmd/cc@{{ .Tag }}
+    ```
+
+    **Docker:**
+    ```bash
+    docker pull ghcr.io/mikemackintosh/crowdcontrol:{{ .Version }}
+    docker run --rm ghcr.io/mikemackintosh/crowdcontrol:{{ .Version }} version
+    ```
+  footer: |
+    ---
+
+    Full changelog: https://github.com/mikemackintosh/crowdcontrol/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    **Docs:** https://mikemackintosh.github.io/crowdcontrol/
+    **Spec:** https://github.com/mikemackintosh/crowdcontrol/blob/main/SPEC.md
+
+dockers:
+  - id: linux-amd64
+    image_templates:
+      - 'ghcr.io/mikemackintosh/crowdcontrol:{{ .Version }}-amd64'
+      - 'ghcr.io/mikemackintosh/crowdcontrol:latest-amd64'
+    dockerfile: .goreleaser/Dockerfile
+    use: buildx
+    build_flag_templates:
+      - '--platform=linux/amd64'
+      - '--label=org.opencontainers.image.source=https://github.com/mikemackintosh/crowdcontrol'
+      - '--label=org.opencontainers.image.description=CrowdControl policy language CLI and PDP'
+      - '--label=org.opencontainers.image.licenses=MIT'
+      - '--label=org.opencontainers.image.version={{ .Version }}'
+      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
+    extra_files:
+      - LICENSE
+      - README.md
+    ids:
+      - cc
+      - cc-lsp
+    goos: linux
+    goarch: amd64
+
+  - id: linux-arm64
+    image_templates:
+      - 'ghcr.io/mikemackintosh/crowdcontrol:{{ .Version }}-arm64'
+      - 'ghcr.io/mikemackintosh/crowdcontrol:latest-arm64'
+    dockerfile: .goreleaser/Dockerfile
+    use: buildx
+    build_flag_templates:
+      - '--platform=linux/arm64'
+      - '--label=org.opencontainers.image.source=https://github.com/mikemackintosh/crowdcontrol'
+      - '--label=org.opencontainers.image.description=CrowdControl policy language CLI and PDP'
+      - '--label=org.opencontainers.image.licenses=MIT'
+      - '--label=org.opencontainers.image.version={{ .Version }}'
+      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
+    extra_files:
+      - LICENSE
+      - README.md
+    ids:
+      - cc
+      - cc-lsp
+    goos: linux
+    goarch: arm64
+
+docker_manifests:
+  - name_template: 'ghcr.io/mikemackintosh/crowdcontrol:{{ .Version }}'
+    image_templates:
+      - 'ghcr.io/mikemackintosh/crowdcontrol:{{ .Version }}-amd64'
+      - 'ghcr.io/mikemackintosh/crowdcontrol:{{ .Version }}-arm64'
+  - name_template: 'ghcr.io/mikemackintosh/crowdcontrol:latest'
+    image_templates:
+      - 'ghcr.io/mikemackintosh/crowdcontrol:latest-amd64'
+      - 'ghcr.io/mikemackintosh/crowdcontrol:latest-arm64'
+
+sboms:
+  - artifacts: archive
+
+# Uncomment to publish a Homebrew formula to mikemackintosh/homebrew-tap.
+# Requires:
+#   1. Create a public repo at github.com/mikemackintosh/homebrew-tap
+#   2. Add a HOMEBREW_TAP_GITHUB_TOKEN secret in this repo with
+#      contents:write permission on the tap repo.
+#
+# brews:
+#   - name: crowdcontrol
+#     ids:
+#       - default
+#     repository:
+#       owner: mikemackintosh
+#       name: homebrew-tap
+#       token: '{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}'
+#     homepage: https://mikemackintosh.github.io/crowdcontrol/
+#     description: A small, readable policy language for gating actions on structured data.
+#     license: MIT
+#     test: |
+#       system "#{bin}/cc", "version"
+#     install: |
+#       bin.install "cc"
+#       bin.install "cc-lsp"

@@ -1,0 +1,13 @@
+{
+  "name": "007_has_field",
+  "description": "has checks field existence",
+  "policy": "forbid \"missing-owner\" {\n  has resource.name\n  not has resource.owner\n  message \"resource {resource.name} has no owner\"\n}\n",
+  "input": {
+    "resource": {"name": "logs-bucket"}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "missing-owner", "kind": "forbid", "passed": false, "message_contains": "logs-bucket has no owner"}
+    ]
+  }
+}

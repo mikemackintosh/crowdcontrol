@@ -1,0 +1,15 @@
+{
+  "name": "019_arithmetic_expr",
+  "description": "arithmetic expressions in conditions",
+  "policy": "forbid \"capacity-overflow\" {\n  used + requested > capacity\n  message \"would exceed capacity\"\n}\n",
+  "input": {
+    "used": 80,
+    "requested": 30,
+    "capacity": 100
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "capacity-overflow", "kind": "forbid", "passed": false, "message_contains": "exceed capacity"}
+    ]
+  }
+}

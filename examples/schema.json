@@ -1,0 +1,16 @@
+{
+  "fields": {
+    "user.name": "string",
+    "user.groups": "list",
+    "resource.type": "string",
+    "resource.name": "string",
+    "resource.acl": "string",
+    "resource.environment": "string",
+    "request.action": "string",
+    "request.approved": "bool",
+    "request.approvers": "list",
+    "request.draft": "bool",
+    "request.labels": "list",
+    "plan.changes": "list"
+  }
+}

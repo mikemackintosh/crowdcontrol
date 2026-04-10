@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cc serve — CrowdControl as an HTTP PDP</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>cc serve — HTTP PDP mode</h1>
+        <p class="lede"><code>cc serve</code> turns CrowdControl into a stateless HTTP policy decision point: load your <code>.cc</code> files once, evaluate JSON documents over HTTP, and stream structured audit logs. Single binary, zero dependencies, safe concurrent reads.</p>
+
+        <div class="callout">
+          <div class="callout-title">Why this exists</div>
+          <p>Most policy engines with a service mode (Cerbos, OPA) run as sidecars and ship audit logs by default. CrowdControl started as a library. <code>cc serve</code> closes that gap so non-Go services can get decisions without embedding an SDK — and so audit trails are a day-one feature, not a future roadmap item.</p>
+        </div>
+
+        <h2 id="quickstart">Quickstart</h2>
+
+<pre><code class="language-bash">cc serve --policy ./policies --addr :8080 --audit-log /var/log/cc.jsonl</code></pre>
+
+        <p>That's it. The server loads every <code>.cc</code> file under <code>./policies</code>, listens on <code>:8080</code>, and streams one JSON-line audit record per decision to <code>/var/log/cc.jsonl</code>.</p>
+
+        <h2 id="endpoints">Endpoints</h2>
+
+        <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>POST</td><td><code>/v1/evaluate</code></td><td>Evaluate a document and return per-rule results</td></tr>
+            <tr><td>GET</td><td><code>/v1/policies</code></td><td>List loaded rules (metadata only — names, kinds, owners, links)</td></tr>
+            <tr><td>GET</td><td><code>/healthz</code></td><td>Liveness probe: version, rule count, shadow flag</td></tr>
+            <tr><td>GET</td><td><code>/readyz</code></td><td>Readiness probe</td></tr>
+            <tr><td>GET</td><td><code>/metrics</code></td><td>Prometheus-format metrics</td></tr>
+            <tr><td>GET</td><td><code>/</code></td><td>Server info + endpoint list</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h2 id="evaluate">POST /v1/evaluate</h2>
+
+        <h3>Request</h3>
+<pre><code class="language-json">{
+  "input": {
+    "user":     { "name": "alex", "role": "intern" },
+    "request":  { "action": "delete" },
+    "resource": { "environment": "production" }
+  },
+  "explain": false
+}</code></pre>
+
+        <p>Set <code>"explain": true</code> (or query string <code>?explain=1</code>) to include per-condition traces.</p>
+
+        <h3>Response</h3>
+<pre><code class="language-json">{
+  "request_id": "9b1c3f2e...",
+  "decision": "deny",
+  "results": [
+    {
+      "rule": "no-interns-delete-prod",
+      "kind": "forbid",
+      "passed": false,
+      "message": "alex cannot delete prod",
+      "description": "Interns cannot delete prod resources",
+      "owner": "platform-security"
+    }
+  ],
+  "elapsed_us": 45,
+  "evaluated_at": "2026-04-10T14:19:24Z"
+}</code></pre>
+
+        <p>HTTP status follows the decision:</p>
+        <ul>
+          <li><code>200</code> — <code>allow</code></li>
+          <li><code>403</code> — <code>deny</code></li>
+          <li><code>400</code> — invalid JSON or malformed input</li>
+          <li><code>401</code> — missing/wrong bearer token (only if <code>--auth-token</code> is set)</li>
+          <li><code>503</code> — not ready (policies not loaded yet)</li>
+        </ul>
+
+        <h2 id="shadow">Shadow mode</h2>
+        <p>Shadow mode evaluates policies normally and emits full audit records, but <strong>always returns <code>allow</code> to the caller</strong> — even when a forbid rule fires. Use it to dark-launch a new policy and verify it doesn't break production before enforcing it.</p>
+
+<pre><code class="language-bash">cc serve --policy ./policies --shadow --audit-log -</code></pre>
+
+        <p>Audit records in shadow mode set <code>"shadow_masked": true</code> so you can grep for "would have denied" events.</p>
+
+        <h2 id="audit">Audit log format</h2>
+        <p>Each evaluated request emits at least one JSON-line record plus one additional record per fired forbid/warn rule.</p>
+
+<pre><code class="language-json">{"ts":"2026-04-10T14:19:24.064Z","request_id":"9b1c...","decision":"deny","elapsed_us":45,"input_sha256":"f28278..."}
+{"ts":"2026-04-10T14:19:24.064Z","request_id":"9b1c...","decision":"rule_fired","rule":"no-interns-delete-prod","kind":"forbid","owner":"platform-security","message":"alex cannot delete prod","elapsed_us":45,"input_sha256":"f28278..."}</code></pre>
+
+        <p><code>--audit-log</code> accepts:</p>
+        <ul>
+          <li><code>/path/to/file.jsonl</code> — append to a file (created if missing)</li>
+          <li><code>-</code> or <code>stdout</code> — write to standard output (for container logs)</li>
+          <li><code>stderr</code> — write to standard error</li>
+          <li>empty (flag omitted) — audit logging disabled</li>
+        </ul>
+
+        <p>The <code>input_sha256</code> field lets you correlate audit records with inputs without storing the raw input (which may contain PII).</p>
+
+        <h2 id="reload">Atomic reload with SIGHUP</h2>
+        <p>Send <code>SIGHUP</code> to reload policies from disk without dropping connections:</p>
+
+<pre><code class="language-bash">kill -HUP $(pgrep cc)</code></pre>
+
+        <p>The new engine is constructed off the hot path and swapped atomically. In-flight requests finish on the old engine; new requests see the new one. If the reload fails (syntax error in a new file), the server logs the error, increments <code>cc_reload_errors_total</code>, and keeps serving with the previous policies.</p>
+
+        <h2 id="metrics">Metrics</h2>
+        <p><code>GET /metrics</code> returns a small set of Prometheus-format counters and gauges:</p>
+
+<pre><code># HELP cc_requests_total Total evaluate requests by decision.
+# TYPE cc_requests_total counter
+cc_requests_total{decision="allow"} 1234
+cc_requests_total{decision="deny"} 56
+cc_requests_total{decision="shadow_masked_deny"} 0
+cc_requests_total{decision="error"} 2
+
+# HELP cc_rules_loaded Number of rules currently loaded.
+# TYPE cc_rules_loaded gauge
+cc_rules_loaded 3
+
+# HELP cc_reload_total Number of successful policy reloads since start.
+# TYPE cc_reload_total counter
+cc_reload_total 4
+
+# HELP cc_reload_errors_total Number of failed policy reloads since start.
+# TYPE cc_reload_errors_total counter
+cc_reload_errors_total 0
+
+# HELP cc_shadow_mode 1 if shadow mode is enabled, 0 otherwise.
+# TYPE cc_shadow_mode gauge
+cc_shadow_mode 0</code></pre>
+
+        <h2 id="auth">Authentication</h2>
+        <p>Set <code>--auth-token &lt;token&gt;</code> to require a bearer token on every request to <code>/v1/*</code>. Health and readiness probes bypass auth so container orchestrators can still probe the server.</p>
+
+<pre><code class="language-bash">cc serve --policy ./policies --auth-token "$(cat /etc/secrets/cc-token)"</code></pre>
+
+<pre><code class="language-bash">curl -X POST http://localhost:8080/v1/evaluate \
+  -H "Authorization: Bearer $(cat /etc/secrets/cc-token)" \
+  -H "Content-Type: application/json" \
+  -d '{"input":{"user":{"role":"admin"}}}'</code></pre>
+
+        <p>Token comparison is constant-time (<code>crypto/subtle.ConstantTimeCompare</code>) to resist timing attacks. For anything beyond a single shared token — mTLS, JWT, OIDC — put <code>cc serve</code> behind a reverse proxy.</p>
+
+        <h2 id="cors">CORS</h2>
+        <p>Pass <code>--cors &lt;origin&gt;</code> to add <code>Access-Control-Allow-Origin</code> headers and respond to preflight requests. Useful when a browser-based playground or admin UI needs to hit the PDP directly:</p>
+
+<pre><code class="language-bash">cc serve --policy ./policies --cors "https://admin.example.com"</code></pre>
+
+        <h2 id="deploy">Deployment patterns</h2>
+
+        <h3>Kubernetes sidecar</h3>
+        <p>Run <code>cc serve</code> as a sidecar next to the app that needs decisions. Mount policies from a ConfigMap and audit logs to a shared volume or stdout for your cluster's log aggregator.</p>
+
+<pre><code class="language-yaml">- name: cc
+  image: crowdcontrol-go:0.1.0
+  args:
+    - serve
+    - --policy=/etc/cc/policies
+    - --addr=:8080
+    - --audit-log=-
+  volumeMounts:
+    - name: policies
+      mountPath: /etc/cc/policies
+  livenessProbe:
+    httpGet: { path: /healthz, port: 8080 }
+  readinessProbe:
+    httpGet: { path: /readyz, port: 8080 }</code></pre>
+
+        <h3>Docker</h3>
+<pre><code class="language-bash">docker run --rm -p 8080:8080 \
+  -v "$PWD/policies:/policies:ro" \
+  crowdcontrol-go cc serve --policy /policies</code></pre>
+
+        <h3>systemd</h3>
+<pre><code class="language-bash">[Unit]
+Description=CrowdControl PDP
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/cc serve --policy /etc/cc/policies --audit-log /var/log/cc.jsonl
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+User=cc
+Group=cc
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+
+        <h2 id="caveats">Operational caveats</h2>
+        <ul>
+          <li><strong>Request body cap.</strong> The server reads at most 4&nbsp;MiB per request. Raise it only if your input documents are genuinely that large — most real policies evaluate plans or events well under 100 KiB.</li>
+          <li><strong>Audit backpressure.</strong> Audit writes are synchronous. If your audit sink is slow (e.g. a network-mounted log file), evaluation latency will track the write latency. Use <code>-</code> for stdout in containerized environments and let the runtime handle it.</li>
+          <li><strong>No rate limiting.</strong> Put <code>cc serve</code> behind a reverse proxy if you need it.</li>
+          <li><strong>Shadow mode is per-server.</strong> There's no per-rule shadow setting yet — the whole server is either enforcing or not.</li>
+        </ul>
+
+        <nav class="page-nav">
+          <a href="cli.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← CLI reference</span>
+          </a>
+          <a href="sdks.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">SDKs →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

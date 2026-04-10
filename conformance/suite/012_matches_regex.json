@@ -1,0 +1,13 @@
+{
+  "name": "012_matches_regex",
+  "description": "matches_regex uses Go regex syntax",
+  "policy": "forbid \"semver-required\" {\n  not version matches_regex \"^v[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\"\n  message \"version must be semver\"\n}\n",
+  "input": {
+    "version": "release-2024"
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "semver-required", "kind": "forbid", "passed": false, "message_contains": "semver"}
+    ]
+  }
+}

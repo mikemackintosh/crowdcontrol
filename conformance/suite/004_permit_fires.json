@@ -1,0 +1,13 @@
+{
+  "name": "004_permit_fires",
+  "description": "permit rule emits message when fired; passed stays true",
+  "policy": "permit \"sec-team-override\" {\n  user.teams contains \"security\"\n  message \"approved by security team\"\n}\n",
+  "input": {
+    "user": {"teams": ["security", "engineering"]}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "sec-team-override", "kind": "permit", "passed": true, "message_contains": "approved by security"}
+    ]
+  }
+}

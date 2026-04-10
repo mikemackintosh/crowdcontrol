@@ -1,0 +1,13 @@
+{
+  "name": "028_negation",
+  "description": "not negates a condition",
+  "policy": "forbid \"missing-team\" {\n  not user.teams contains \"platform\"\n  message \"must be on platform team\"\n}\n",
+  "input": {
+    "user": {"teams": ["dev", "qa"]}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "missing-team", "kind": "forbid", "passed": false, "message_contains": "platform"}
+    ]
+  }
+}

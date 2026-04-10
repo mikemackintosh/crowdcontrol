@@ -1,0 +1,13 @@
+{
+  "name": "016_any_quantifier",
+  "description": "any matches when at least one element satisfies the predicate",
+  "policy": "forbid \"public-port\" {\n  any ports == 22\n  message \"port 22 exposed\"\n}\n",
+  "input": {
+    "ports": [80, 443, 22]
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "public-port", "kind": "forbid", "passed": false, "message_contains": "22"}
+    ]
+  }
+}

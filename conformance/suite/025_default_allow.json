@@ -1,0 +1,14 @@
+{
+  "name": "025_default_allow",
+  "description": "default_effect=allow: no implicit denial when nothing fires",
+  "policy": "forbid \"specific\" {\n  resource.type == \"unicorn\"\n  message \"unicorns blocked\"\n}\n",
+  "input": {
+    "resource": {"type": "horse"}
+  },
+  "default_effect": "allow",
+  "expect": {
+    "decisions": [
+      {"rule": "specific", "kind": "forbid", "passed": true}
+    ]
+  }
+}

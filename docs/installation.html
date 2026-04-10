@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Installation — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>Installation</h1>
+        <p class="lede">CrowdControl ships as a single Go binary (<code>cc</code>) plus native SDKs for six languages. Pick the one that matches your deployment.</p>
+
+        <h2 id="pre-built-binaries">Pre-built binaries</h2>
+        <p>Every release publishes pre-built binaries for Linux, macOS, and Windows on amd64 and arm64. Grab the latest from <a href="https://github.com/mikemackintosh/crowdcontrol/releases/latest">GitHub Releases</a>:</p>
+<pre><code class="language-bash"># Linux / macOS
+OS=$(uname -s)
+ARCH=$(uname -m)
+curl -L "https://github.com/mikemackintosh/crowdcontrol/releases/latest/download/crowdcontrol_0.1.0_${OS}_${ARCH}.tar.gz" \
+  | tar xz cc cc-lsp
+sudo mv cc cc-lsp /usr/local/bin/</code></pre>
+
+        <p>Each archive includes <code>cc</code>, <code>cc-lsp</code>, README, LICENSE, SPEC.md, and the example policies. A <code>checksums.txt</code> with SHA-256 hashes is published alongside.</p>
+
+        <h2 id="docker">Docker</h2>
+<pre><code class="language-bash">docker run --rm ghcr.io/mikemackintosh/crowdcontrol:latest version
+docker run --rm -v "$PWD/policies:/policies:ro" \
+  ghcr.io/mikemackintosh/crowdcontrol:latest \
+  serve --policy /policies --addr :8080</code></pre>
+
+        <p>The release image is built from <code>distroless/static-debian12:nonroot</code> — ~3&nbsp;MiB, no shell, no package manager, runs as UID 65532.</p>
+
+        <h2 id="go-cli">Go install</h2>
+        <p>If you have Go installed, go-install builds from source and puts the binary in <code>$GOPATH/bin</code>:</p>
+<pre><code class="language-bash">go install github.com/mikemackintosh/crowdcontrol/cmd/cc@latest</code></pre>
+
+        <p>Verify:</p>
+<pre><code class="language-bash">cc version</code></pre>
+
+        <h2 id="build-from-source">Build from source</h2>
+<pre><code class="language-bash">git clone https://github.com/mikemackintosh/crowdcontrol
+cd crowdcontrol
+go build -o cc ./cmd/cc
+./cc version</code></pre>
+
+        <h2 id="lsp-server">LSP server</h2>
+        <p>A language server for editor integration (diagnostics, hover, go-to-definition).</p>
+<pre><code class="language-bash">go install github.com/mikemackintosh/crowdcontrol/cmd/cc-lsp@latest</code></pre>
+
+        <h2 id="vs-code">VS Code extension</h2>
+        <p>The VS Code extension lives under <code>editors/vscode/</code>. See <a href="https://github.com/mikemackintosh/crowdcontrol/tree/main/editors/vscode">the extension README</a> for build and install instructions.</p>
+
+        <h2 id="go-library">Go library</h2>
+<pre><code class="language-bash">go get github.com/mikemackintosh/crowdcontrol</code></pre>
+
+<pre><code class="language-go">import "github.com/mikemackintosh/crowdcontrol"
+
+eng, err := crowdcontrol.New([]string{"./policies"})
+if err != nil { panic(err) }
+
+results := eng.Evaluate(map[string]any{
+    "user":    map[string]any{"name": "alex", "role": "intern"},
+    "request": map[string]any{"action": "delete"},
+})</code></pre>
+
+        <h2 id="other-sdks">Other SDKs</h2>
+        <p>CrowdControl has native SDKs for Python, TypeScript, Ruby, Kotlin, and PHP. See the <a href="sdks.html">SDK page</a> for language-specific install instructions.</p>
+
+        <nav class="page-nav">
+          <a href="quickstart.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← Quickstart</span>
+          </a>
+          <a href="language.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">Language reference →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

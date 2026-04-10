@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLI reference — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>CLI reference</h1>
+        <p class="lede">The <code>cc</code> binary is the reference CLI for CrowdControl. Use it to evaluate, validate, and test policies from the command line or CI.</p>
+
+        <h2 id="commands">Commands</h2>
+        <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>cc evaluate</code></td><td>Run policies against an input document</td></tr>
+            <tr><td><code>cc validate</code></td><td>Syntax-check <code>.cc</code> files; optional schema validation</td></tr>
+            <tr><td><code>cc test</code></td><td>Run JSON test suites against policies</td></tr>
+            <tr><td><code>cc parse</code></td><td>Print the rule summary for one or more <code>.cc</code> files</td></tr>
+            <tr><td><code>cc serve</code></td><td>Run as an HTTP policy decision point (PDP) with audit logs — see <a href="serve.html">cc serve</a></td></tr>
+            <tr><td><code>cc version</code></td><td>Print the cc version</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h2 id="cc-evaluate">cc evaluate</h2>
+        <p>Evaluates one or more policy files against a JSON input document.</p>
+<pre><code class="language-bash">cc evaluate --policy ./policies --input ./input.json</code></pre>
+
+        <p>Flags:</p>
+        <ul>
+          <li><code>--policy &lt;path&gt;</code> — policy file or directory (repeatable)</li>
+          <li><code>--input &lt;file&gt;</code> — input JSON (use <code>-</code> for stdin)</li>
+          <li><code>--explain</code> — print per-condition trace</li>
+          <li><code>--default-deny</code> — deny unless a permit fires</li>
+          <li><code>--format &lt;text|json&gt;</code> — output format</li>
+        </ul>
+
+        <p>Exit codes:</p>
+        <ul>
+          <li><code>0</code> — no forbid rules fired (document allowed)</li>
+          <li><code>1</code> — at least one forbid rule fired (document denied)</li>
+          <li><code>2</code> — syntax or usage error</li>
+        </ul>
+
+        <h2 id="cc-validate">cc validate</h2>
+<pre><code class="language-bash">cc validate ./policies
+cc validate --schema ./schema.json ./policies</code></pre>
+        <p>With a schema, validate catches unknown fields, type mismatches, and bad operator usage before runtime.</p>
+
+        <h2 id="cc-test">cc test</h2>
+<pre><code class="language-bash">cc test --policy ./policies ./tests/</code></pre>
+        <p>Runs JSON test cases against policies. Each test is a file with an input document and a list of expected rules that should fire.</p>
+
+        <h2 id="cc-parse">cc parse</h2>
+<pre><code class="language-bash">cc parse ./policies/rules.cc</code></pre>
+        <p>Prints a summary of the rules in a policy file without evaluating anything. Useful for quick spot checks.</p>
+
+        <h2 id="cc-serve">cc serve</h2>
+<pre><code class="language-bash">cc serve --policy ./policies --addr :8080 --audit-log /var/log/cc.jsonl</code></pre>
+        <p>Runs CrowdControl as an HTTP policy decision point. Exposes <code>POST /v1/evaluate</code>, <code>GET /v1/policies</code>, <code>GET /healthz</code>, <code>GET /readyz</code>, and <code>GET /metrics</code>. Supports atomic SIGHUP reload, shadow mode, bearer-token auth, CORS, and structured JSON audit logs.</p>
+        <p>See the <a href="serve.html">cc serve page</a> for the full API, flag reference, and deployment patterns.</p>
+
+        <nav class="page-nav">
+          <a href="embedding.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← Embedding in Go</span>
+          </a>
+          <a href="sdks.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">SDKs →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

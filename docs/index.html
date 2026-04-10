@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CrowdControl — A small, readable policy language</title>
+  <meta name="description" content="CrowdControl is a dependency-free policy language for gating actions on structured data. Write rules that a security engineer can read in 30 seconds.">
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <section class="hero">
+          <span class="hero-badge">v0.1 · Go reference + 6 SDKs</span>
+          <h1>A small, readable policy language</h1>
+          <p class="lede">CrowdControl lets you write <code>forbid</code> / <code>warn</code> / <code>permit</code> rules against any JSON document. A security engineer who has never seen a <code>.cc</code> file before should be able to read a policy and understand it in under 30 seconds.</p>
+          <div class="hero-cta">
+            <a href="quickstart.html" class="btn btn-primary">Quickstart</a>
+            <a href="comparison.html" class="btn btn-secondary">Compare vs CEDAR / Cerbos / Rego</a>
+          </div>
+        </section>
+
+<pre><code class="language-crowdcontrol">forbid "no-public-prod-storage" {
+  description "Production storage must not be public"
+  owner       "platform-security"
+
+  resource.type == "storage_bucket"
+  resource.environment == "production"
+  resource.acl in ["public-read", "public-read-write"]
+
+  unless user.groups contains "platform-oncall"
+
+  message "{user.name} cannot make {resource.name} public in prod"
+}</code></pre>
+
+        <h2 id="why-crowdcontrol">Why CrowdControl</h2>
+        <p>Most policy languages were built for runtime authorization: "can this principal perform this action on this resource?" CrowdControl was built for a different question — <em>"is this structured document acceptable under these rules?"</em> — which turns out to cover a huge amount of what teams actually write policies for: Terraform plans, GitHub events, Kubernetes manifests, config files, change reviews.</p>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg></div>
+            <h3>Readable in 30 seconds</h3>
+            <p>Every rule is a short block. No entity hierarchies, no comprehensions, no unification.</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7L9 18l-5-5"/></svg></div>
+            <h3>Zero dependencies</h3>
+            <p>The Go reference implementation is pure stdlib. Every SDK uses only its host language's stdlib.</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg></div>
+            <h3>Static schema check</h3>
+            <p>Opt-in JSON schema catches typos and type mismatches before you ship a broken policy.</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+            <h3>Explain mode</h3>
+            <p>Per-condition trace shows exactly which check fired and what value it saw. Great for audits.</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l10 6-10 6L2 8l10-6z"/><path d="M2 16l10 6 10-6"/></svg></div>
+            <h3>6 native SDKs</h3>
+            <p>Go, Python, TypeScript, Ruby, Kotlin, PHP — all passing the same conformance suite.</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+            <h3>Escape clauses built in</h3>
+            <p>Use <code>unless</code> for exceptions. No awkward negation trees, no policy composition tricks.</p>
+          </div>
+        </div>
+
+        <h2 id="a-quick-tour">A quick tour</h2>
+        <p>CrowdControl rules come in three kinds:</p>
+        <ul>
+          <li><strong><code>forbid</code></strong> — denies when all conditions match, unless an escape clause saves it.</li>
+          <li><strong><code>warn</code></strong> — same as forbid, but non-blocking. Tooling should surface it without failing.</li>
+          <li><strong><code>permit</code></strong> — explicit allow. Useful for audit messages and default-deny mode.</li>
+        </ul>
+
+        <p>Conditions operate on fields of a JSON document using dotted paths:</p>
+
+<pre><code class="language-crowdcontrol">forbid "risk-score-cap" {
+  # arithmetic + aggregates
+  count(plan.destroys) * 3 + count(plan.creates) > 20
+
+  unless author.teams contains "platform-team"
+
+  message "risk score too high: {count(plan.destroys)} destroys, {count(plan.creates)} creates"
+}</code></pre>
+
+        <h2 id="next-steps">Next steps</h2>
+        <ul>
+          <li><a href="quickstart.html">Quickstart</a> — install <code>cc</code> and run your first policy.</li>
+          <li><a href="language.html">Language reference</a> — the full grammar, operators, and semantics.</li>
+          <li><a href="comparison.html">Compare vs CEDAR / Cerbos / Rego</a> — the honest version.</li>
+          <li><a href="sdks.html">SDKs</a> — embed CrowdControl in Python, TypeScript, Ruby, Kotlin, or PHP.</li>
+        </ul>
+
+        <nav class="page-nav">
+          <span></span>
+          <a href="introduction.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">What is CrowdControl →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

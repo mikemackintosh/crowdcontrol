@@ -1,0 +1,13 @@
+{
+  "name": "021_upper_transform",
+  "description": "upper() transform normalizes case before comparison",
+  "policy": "forbid \"env-uppercase\" {\n  upper(env) == \"PRODUCTION\"\n  message \"prod blocked\"\n}\n",
+  "input": {
+    "env": "production"
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "env-uppercase", "kind": "forbid", "passed": false, "message_contains": "prod blocked"}
+    ]
+  }
+}

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quickstart — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>Quickstart</h1>
+        <p class="lede">Install the <code>cc</code> CLI, write a one-rule policy, and evaluate it against a JSON document. Five minutes end to end.</p>
+
+        <h2 id="install">1. Install the CLI</h2>
+<pre><code class="language-bash">go install github.com/mikemackintosh/crowdcontrol/cmd/cc@latest</code></pre>
+        <p>If you don't have Go installed, see the <a href="installation.html">installation page</a> for binary releases and other options.</p>
+
+        <h2 id="write-a-policy">2. Write a policy</h2>
+<pre><code class="language-bash">mkdir -p policies
+cat &gt; policies/rules.cc &lt;&lt;'EOF'
+forbid "no-admin-deletes-by-interns" {
+  user.role == "intern"
+  request.action == "delete"
+  resource.environment == "production"
+  message "{user.name} is an intern and cannot delete production resources"
+}
+EOF</code></pre>
+
+        <h2 id="create-input">3. Create an input document</h2>
+<pre><code class="language-bash">cat &gt; input.json &lt;&lt;'EOF'
+{
+  "user":     {"name": "alex", "role": "intern"},
+  "request":  {"action": "delete"},
+  "resource": {"environment": "production"}
+}
+EOF</code></pre>
+
+        <h2 id="evaluate">4. Evaluate</h2>
+<pre><code class="language-bash">cc evaluate --policy ./policies --input ./input.json</code></pre>
+
+        <p>Output:</p>
+<pre><code>DENY: alex is an intern and cannot delete production resources (no-admin-deletes-by-interns)</code></pre>
+
+        <p>The process exits with status <code>1</code> because at least one <code>forbid</code> rule denied the document.</p>
+
+        <div class="callout">
+          <div class="callout-title">Tip</div>
+          <p>Use <code>cc evaluate --explain</code> to get a per-condition trace showing exactly which checks fired and what values were resolved.</p>
+        </div>
+
+        <h2 id="add-an-escape">5. Add an escape clause</h2>
+        <p>Most real policies need exceptions. Use <code>unless</code>:</p>
+
+<pre><code class="language-crowdcontrol">forbid "no-admin-deletes-by-interns" {
+  user.role == "intern"
+  request.action == "delete"
+  resource.environment == "production"
+
+  unless user.groups contains "platform-oncall"
+
+  message "{user.name} is an intern and cannot delete production resources"
+}</code></pre>
+
+        <p>Now the rule fires <em>unless</em> the user is on the platform on-call rotation. Multiple <code>unless</code> clauses are OR'd — any one being true saves the rule.</p>
+
+        <h2 id="whats-next">What's next</h2>
+        <ul>
+          <li><a href="language.html">Language reference</a> — every operator, quantifier, and built-in.</li>
+          <li><a href="examples.html">Example policies</a> — realistic patterns for Terraform, GitHub, K8s.</li>
+          <li><a href="embedding.html">Embedding in Go</a> — use CrowdControl from inside your service.</li>
+          <li><a href="schema.html">Schema validation</a> — catch typos at lint time.</li>
+        </ul>
+
+        <nav class="page-nav">
+          <a href="introduction.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← What is CrowdControl</span>
+          </a>
+          <a href="installation.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">Installation →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{
+  "name": "crowdcontrol",
+  "version": "0.1.0",
+  "description": "TypeScript / Node.js SDK for the CrowdControl policy language.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "tsc && node --test dist/tests/",
+    "conformance": "tsc && node dist/conformance-runner.js",
+    "demo": "tsc && node dist/examples/demo.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  }
+}

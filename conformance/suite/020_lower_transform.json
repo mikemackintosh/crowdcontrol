@@ -1,0 +1,13 @@
+{
+  "name": "020_lower_transform",
+  "description": "lower() transform normalizes case before comparison",
+  "policy": "forbid \"case-insensitive-block\" {\n  lower(user.name) == \"admin\"\n  message \"admin not allowed\"\n}\n",
+  "input": {
+    "user": {"name": "ADMIN"}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "case-insensitive-block", "kind": "forbid", "passed": false, "message_contains": "admin not allowed"}
+    ]
+  }
+}

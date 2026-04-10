@@ -1,0 +1,13 @@
+{
+  "name": "003_warn",
+  "description": "warn rule fires (passed=false) when condition matches",
+  "policy": "warn \"draft-pr\" {\n  pr.draft == true\n  message \"PR is in draft\"\n}\n",
+  "input": {
+    "pr": {"draft": true}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "draft-pr", "kind": "warn", "passed": false, "message_contains": "PR is in draft"}
+    ]
+  }
+}

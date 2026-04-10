@@ -1,0 +1,14 @@
+{
+  "name": "029_multiple_conditions_anded",
+  "description": "multiple conditions in a rule are AND'd — all must match",
+  "policy": "forbid \"prod-iam-by-intern\" {\n  resource.type == \"iam_role\"\n  resource.env == \"production\"\n  user.role == \"intern\"\n  message \"intern cannot touch prod IAM\"\n}\n",
+  "input": {
+    "resource": {"type": "iam_role", "env": "production"},
+    "user": {"role": "intern"}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "prod-iam-by-intern", "kind": "forbid", "passed": false, "message_contains": "intern cannot"}
+    ]
+  }
+}

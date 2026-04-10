@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Explain mode — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>Explain mode</h1>
+        <p class="lede">Explain mode traces every condition in every rule, showing which checks matched, which didn't, and what values were resolved. Great for debugging and audit trails.</p>
+
+        <h2 id="enabling">Enabling explain mode</h2>
+        <p><strong>CLI:</strong></p>
+<pre><code class="language-bash">cc evaluate --policy ./policies --input ./input.json --explain</code></pre>
+
+        <p><strong>Go API:</strong></p>
+<pre><code class="language-go">eng := evaluator.NewFromPolicies(policies,
+    evaluator.WithExplain(true),
+)
+results := eng.Evaluate(doc)
+fmt.Print(evaluator.FormatExplain(results))</code></pre>
+
+        <h2 id="output">Trace output</h2>
+        <p>Each condition is annotated with <code>+</code> (matched), <code>-</code> (did not match), and the actual value resolved from the document.</p>
+
+<pre><code>RULE "blast-radius" [forbid] -> DENIED
+  + condition: count(plan.destroys) > 5 -> true (got 8)
+  - unless: author.teams contains "platform-team" -> false (got [dev, backend])
+  -> too many destroys (8) — requires platform-team
+
+RULE "sensitive-resources" [forbid] -> PASSED
+  + condition: resource.type in ["aws_iam_role", ...] -> true (got "aws_iam_role")
+  + unless: author.teams contains "enterprise-security" -> true (got [enterprise-security, dev])
+  -> saved by unless clause
+
+RULE "no-draft-production" [forbid] -> PASSED
+  + condition: pr.draft == true -> true (got true)
+  - condition: project.workspace == "production" -> false (got "staging")
+  -> conditions not met, rule did not fire</code></pre>
+
+        <h2 id="complete-traces">Complete traces</h2>
+        <p>In explain mode, the evaluator continues evaluating all conditions and unless clauses even after a mismatch, so the trace is always complete. This is slower than normal evaluation but gives you the full picture for debugging.</p>
+
+        <h2 id="use-cases">Use cases</h2>
+        <ul>
+          <li><strong>Debugging a confusing rule result</strong> — see exactly which condition failed and what value it saw.</li>
+          <li><strong>Audit trails</strong> — log per-condition traces as structured output for compliance.</li>
+          <li><strong>Dry-run review</strong> — explain mode on a set of sample inputs is an effective way to validate a new policy before enforcing it.</li>
+        </ul>
+
+        <nav class="page-nav">
+          <a href="schema.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← Schema validation</span>
+          </a>
+          <a href="examples.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">Example policies →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

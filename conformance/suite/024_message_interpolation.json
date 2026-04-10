@@ -1,0 +1,13 @@
+{
+  "name": "024_message_interpolation",
+  "description": "{field.path} is replaced with the resolved value at message time",
+  "policy": "forbid \"interp\" {\n  user.role == \"intern\"\n  message \"user {user.name} is an intern and may not act\"\n}\n",
+  "input": {
+    "user": {"name": "alex", "role": "intern"}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "interp", "kind": "forbid", "passed": false, "message_exact": "user alex is an intern and may not act"}
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "014_intersects",
+  "description": "intersects: any element of LHS appears in RHS",
+  "policy": "forbid \"sensitive-tag\" {\n  resource.tags intersects [\"pii\", \"phi\", \"secret\"]\n  message \"resource carries sensitive tag\"\n}\n",
+  "input": {
+    "resource": {"tags": ["public", "pii", "logs"]}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "sensitive-tag", "kind": "forbid", "passed": false, "message_contains": "sensitive"}
+    ]
+  }
+}

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comparison — CrowdControl vs CEDAR / Cerbos / Rego</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>Comparison with other policy languages</h1>
+        <p class="lede">An honest look at CrowdControl next to CEDAR, Cerbos, Rego/OPA, Casbin, XACML, and the Zanzibar family. Every row here exists to help you discard candidates quickly.</p>
+
+        <h2 id="feature-matrix">Feature matrix</h2>
+        <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>CrowdControl</th>
+              <th>CEDAR</th>
+              <th>Cerbos</th>
+              <th>Rego/OPA</th>
+              <th>Casbin</th>
+              <th>XACML</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Syntax</td><td>dedicated DSL</td><td>dedicated DSL</td><td>YAML + CEL</td><td>logic programming</td><td>model + CSV/DB</td><td>XML</td></tr>
+            <tr><td>Paradigm</td><td>rules over a doc</td><td>principal/action/resource</td><td>resource-scoped</td><td>declarative logic</td><td>model-driven</td><td>attribute-based</td></tr>
+            <tr><td>Input model</td><td>single JSON doc</td><td>entity graph</td><td>principal/resource/aux</td><td>any JSON</td><td>request tuple</td><td>XACML request</td></tr>
+            <tr><td>Turing-complete</td><td>no (by design)</td><td>no (by design)</td><td>no</td><td>effectively yes</td><td>no</td><td>no</td></tr>
+            <tr><td>Formal proofs</td><td>no</td><td><strong>yes</strong> (Lean/Dafny)</td><td>no</td><td>partial</td><td>no</td><td>standardized</td></tr>
+            <tr><td>Static type check</td><td>opt-in schema</td><td><strong>yes</strong></td><td><strong>yes</strong></td><td>no</td><td>no</td><td>schema-based</td></tr>
+            <tr><td>Escape clauses</td><td><strong>yes</strong></td><td>no direct form</td><td>via conditions</td><td>via negation</td><td>via matcher</td><td>via obligations</td></tr>
+            <tr><td>Explain mode</td><td><strong>yes</strong></td><td>yes</td><td>yes</td><td>yes</td><td>no</td><td>varies</td></tr>
+            <tr><td>Default deny</td><td>opt-in</td><td>yes</td><td>yes</td><td>n/a</td><td>n/a</td><td>yes</td></tr>
+            <tr><td>Runtime shape</td><td>embedded library</td><td>lib or service</td><td>sidecar/service</td><td>sidecar/service</td><td>embedded library</td><td>big engines</td></tr>
+            <tr><td>External deps</td><td>zero</td><td>Rust runtime</td><td>Go binary</td><td>Go binary / WASM</td><td>varies</td><td>JVM typically</td></tr>
+            <tr><td>Learning curve</td><td>minutes</td><td>an hour</td><td>an afternoon</td><td>days</td><td>an afternoon</td><td>a lifetime</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h2 id="on-turing-completeness">On "not Turing-complete"</h2>
+        <p>Both CrowdControl and CEDAR list "not Turing-complete" as a feature, not a limitation. Same reasons:</p>
+        <ul>
+          <li><strong>Bounded evaluation.</strong> Every policy terminates in time proportional to the input.</li>
+          <li><strong>Decidability.</strong> You can answer questions <em>about</em> the policy, not just run it.</li>
+          <li><strong>Small surface area.</strong> A human can hold the entire language in their head.</li>
+        </ul>
+        <p>Rego made the other trade. It gained recursive rules, comprehensions, partial evaluation, and the ability to express almost any policy you can describe — at the cost of a steeper learning curve and mandatory evaluation timeouts.</p>
+        <p>CrowdControl <em>could</em> be made Turing-complete by adding recursion, rule references, or user-defined functions. None of those are in the grammar on purpose.</p>
+
+        <h2 id="proofs-vs-tests">"CEDAR has proofs, CrowdControl has tests"</h2>
+        <p>This phrase gets thrown around a lot. Here's what it actually means.</p>
+
+        <h3 id="cedar-proofs">What CEDAR has</h3>
+        <p>CEDAR has a <strong>formal semantics</strong> — a mathematical definition of what every policy construct means, written precisely enough that a theorem prover can reason about it. AWS has used <a href="https://lean-lang.org/">Lean</a> and <a href="https://dafny.org/">Dafny</a> to prove theorems <em>about CEDAR itself</em>:</p>
+        <ul>
+          <li><strong>Validator soundness.</strong> If CEDAR's type checker accepts your policy, the runtime is mathematically guaranteed never to throw a type error on that policy — for <em>any</em> possible input, not just the ones someone tested.</li>
+          <li><strong>Determinism.</strong> Same policy + same input always produces the same decision.</li>
+          <li><strong>Spec ↔ implementation equivalence.</strong> The Rust code you actually run has been proven to match the mathematical spec.</li>
+          <li><strong>Analyzer correctness.</strong> CEDAR can answer <em>"is policy A strictly more permissive than policy B?"</em> with a proof, not a guess.</li>
+        </ul>
+        <p>These are proofs checked by a theorem prover. They cover every possible input. See <a href="https://github.com/cedar-policy/cedar-spec">cedar-spec</a>.</p>
+
+        <h3 id="cc-tests">What CrowdControl has</h3>
+        <p>CrowdControl has a <strong>conformance suite</strong> — <code>conformance/suite/*.json</code>, every SDK runs it, every SDK must produce identical decisions on every case. Plus unit tests in each port. This gives high confidence for the cases <em>in the suite</em> and nothing for cases outside it.</p>
+
+        <h3 id="practical-difference">The practical difference</h3>
+        <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Question</th><th>CEDAR</th><th>CrowdControl</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>"Will this policy ever crash at runtime?"</td><td><strong>Provably</strong> no if it type-checks</td><td>Probably not — bounded grammar, covered by tests</td></tr>
+            <tr><td>"Do my Go and Python SDKs agree on all inputs?"</td><td>Provably yes</td><td>On every input in the conformance suite, yes</td></tr>
+            <tr><td>"Is my new policy strictly stricter than the old one?"</td><td>Provably answerable by the analyzer</td><td>Enumerate test cases and hope</td></tr>
+            <tr><td>"Can the engine hang on malicious input?"</td><td>Provably no</td><td>Probably not — but not proven</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>If your policy engine serves trillions of authorization decisions for a global cloud provider, the difference matters a lot. If it's gating Terraform plans in CI, a conformance suite you can read in an afternoon is probably the right bar.</p>
+
+        <h2 id="vs-cedar">CrowdControl vs CEDAR</h2>
+        <p><a href="https://www.cedarpolicy.com/">CEDAR</a> is AWS's open-source policy language, built around a principal/action/resource/context model with an entity store. It's the only production policy language with machine-checked proofs about its semantics.</p>
+
+<pre><code class="language-cedar">// CEDAR
+permit (
+  principal in Group::"engineers",
+  action == Action::"view",
+  resource in Folder::"public"
+);</code></pre>
+
+<pre><code class="language-crowdcontrol"># CrowdControl
+permit "engineers-view-public" {
+  user.groups contains "engineers"
+  request.action == "view"
+  resource.folder == "public"
+}</code></pre>
+
+        <ul>
+          <li><strong>Data model.</strong> CEDAR models a world of <em>entities</em> with attributes and relationships. CrowdControl evaluates a single flat JSON document and has no notion of entities. Structural difference, not a maturity gap.</li>
+          <li><strong>Scope.</strong> CEDAR answers <em>"can this principal perform this action on this resource?"</em>. CrowdControl answers <em>"is this structured document acceptable under these rules?"</em>.</li>
+          <li><strong>Rigor.</strong> CEDAR has machine-checked proofs. CrowdControl has a conformance suite.</li>
+        </ul>
+
+        <div class="callout">
+          <div class="callout-title">Use CEDAR when</div>
+          <p>You're building fine-grained SaaS authorization with users, groups, roles, and resources — especially if correctness really has to be provable.</p>
+        </div>
+        <div class="callout">
+          <div class="callout-title">Use CrowdControl when</div>
+          <p>You want to gate a plan, a PR, a config file, or any other structured document with rules a security engineer can review on their first day.</p>
+        </div>
+
+        <h2 id="vs-cerbos">CrowdControl vs Cerbos</h2>
+        <p><a href="https://cerbos.dev/">Cerbos</a> is a stateless policy decision point. Policies are YAML, conditions are <a href="https://github.com/google/cel-spec">CEL</a>, and the engine runs as a sidecar or service next to your app.</p>
+
+<pre><code class="language-yaml"># Cerbos
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  resource: "album"
+  rules:
+    - actions: ["view"]
+      effect: EFFECT_ALLOW
+      condition:
+        match:
+          expr: "request.resource.attr.public == true"</code></pre>
+
+<pre><code class="language-crowdcontrol"># CrowdControl
+permit "album-view-public" {
+  request.action == "view"
+  resource.type == "album"
+  resource.public == true
+}</code></pre>
+
+        <ul>
+          <li><strong>Syntax.</strong> Cerbos splits into YAML + CEL. CrowdControl is one purpose-built language.</li>
+          <li><strong>Deployment.</strong> Both ship a deployable PDP now. <a href="serve.html"><code>cc serve</code></a> exposes <code>POST /v1/evaluate</code>, streams structured JSON audit logs, supports shadow mode, and reloads policies atomically on SIGHUP. Cerbos still has more mature rollout controls (percentage rollout, per-rule enable/disable) and richer policy bundle distribution — that's a maturity delta, not a missing capability.</li>
+          <li><strong>Scope.</strong> Cerbos policies are scoped to a resource kind and assume principal/action/resource. CrowdControl rules operate on any document shape.</li>
+        </ul>
+
+        <div class="callout">
+          <div class="callout-title">Use Cerbos when</div>
+          <p>You need an always-on PDP with production-grade operational surface sitting next to a fleet of microservices, today.</p>
+        </div>
+        <div class="callout">
+          <div class="callout-title">Use CrowdControl when</div>
+          <p>You want something you can call inline from a binary — no service to deploy, no sidecar to babysit.</p>
+        </div>
+
+        <h2 id="vs-rego">CrowdControl vs Rego / OPA</h2>
+        <p><a href="https://www.openpolicyagent.org/docs/latest/policy-language/">Rego</a> is the language of <a href="https://www.openpolicyagent.org/">Open Policy Agent</a>. It is a declarative, Datalog-inspired logic language — probably the most powerful policy language in wide production use.</p>
+
+<pre><code class="language-rego"># Rego
+package policy
+import future.keywords.if
+
+deny contains msg if {
+  input.user.role == "intern"
+  input.request.action == "delete"
+  input.resource.environment == "production"
+  msg := sprintf("%s is an intern and cannot delete prod", [input.user.name])
+}</code></pre>
+
+<pre><code class="language-crowdcontrol"># CrowdControl
+forbid "no-admin-deletes-by-interns" {
+  user.role == "intern"
+  request.action == "delete"
+  resource.environment == "production"
+  message "{user.name} is an intern and cannot delete prod"
+}</code></pre>
+
+        <ul>
+          <li><strong>Expressiveness.</strong> Rego can express basically any policy you can describe. CrowdControl can't — and won't try. The readability pitch depends on a bounded grammar.</li>
+          <li><strong>Learning curve.</strong> Rego requires partial rules, comprehensions, unification, and "every rule is a set" thinking. CrowdControl reads like bullet points.</li>
+          <li><strong>Tooling.</strong> OPA has a huge ecosystem: REPL, Playground, WASM, Gatekeeper, conftest, Styra DAS. CrowdControl has a CLI, LSP, and VS Code extension.</li>
+          <li><strong>Debuggability.</strong> OPA's trace is a full evaluation tree. CrowdControl's trace is a flat per-condition list with <code>+</code>/<code>-</code> annotations and resolved values — easier to skim, less powerful.</li>
+        </ul>
+
+        <div class="callout">
+          <div class="callout-title">Use Rego/OPA when</div>
+          <p>You need a general-purpose policy engine that scales from admission control to feature flags to data filtering, and the learning curve is worth it.</p>
+        </div>
+        <div class="callout">
+          <div class="callout-title">Use CrowdControl when</div>
+          <p>Your rules are simple enough that the Rego learning curve is the biggest thing standing between "idea" and "rule in CI".</p>
+        </div>
+
+        <h2 id="vs-casbin">CrowdControl vs Casbin</h2>
+        <p><a href="https://casbin.org/">Casbin</a> is a widely-used authorization library with a model-driven approach — you pick a model (ACL, RBAC, ABAC, RESTful) and provide rules in CSV or a database.</p>
+        <ul>
+          <li><strong>Indirection.</strong> Casbin has a separate model definition file that shapes how policies are interpreted. CrowdControl has no model layer; rules are what they say they are.</li>
+          <li><strong>Storage.</strong> Casbin is usually backed by a store. CrowdControl loads <code>.cc</code> files at startup.</li>
+          <li><strong>Scope.</strong> Casbin is tightly focused on access control. CrowdControl is a general rule engine for arbitrary JSON documents.</li>
+        </ul>
+
+        <h2 id="vs-xacml">CrowdControl vs XACML</h2>
+        <p><a href="https://en.wikipedia.org/wiki/XACML">XACML</a> is the OASIS standard for attribute-based access control. It's comprehensive, standardized, and famously verbose.</p>
+        <ul>
+          <li><strong>Syntax.</strong> XACML is XML. CrowdControl is not. This is the entire section.</li>
+          <li><strong>Use XACML when:</strong> you have a compliance requirement that names XACML.</li>
+          <li><strong>Use CrowdControl when:</strong> you don't.</li>
+        </ul>
+
+        <h2 id="honourable-mentions">Honourable mentions</h2>
+        <ul>
+          <li><strong><a href="https://authzed.com/spicedb">SpiceDB</a> / Zanzibar</strong> — relationship-based authorization (<code>document:1#viewer@user:alice</code>). Use it when your questions are <em>"who has access to what, transitively?"</em>. CrowdControl has nothing to say about graph traversal. Structural difference.</li>
+          <li><strong><a href="https://openfga.dev/">OpenFGA</a> / <a href="https://warrant.dev/">Warrant</a></strong> — more Zanzibar-style relationship engines.</li>
+          <li><strong><a href="https://www.styra.com/styra-das/">Styra DAS</a></strong> — commercial control plane on top of OPA.</li>
+        </ul>
+
+        <h2 id="roadmap">What CrowdControl doesn't have yet</h2>
+        <p>Operational / tooling gaps. None are precluded by the language or engine design.</p>
+        <ul>
+          <li>Percentage rollout and per-rule enable/disable (whole-server shadow mode exists — see <a href="serve.html"><code>cc serve</code></a>)</li>
+          <li>Signed policy bundle distribution (sign, ship, verify)</li>
+          <li>gRPC transport on <code>cc serve</code> (HTTP+JSON exists)</li>
+          <li>Rich web playground (planned — see WASM build)</li>
+          <li>Formal verification of semantics (CEDAR is the only game in town here)</li>
+        </ul>
+        <p>If any of these are blockers for you, <a href="https://github.com/mikemackintosh/crowdcontrol/issues">open an issue</a>.</p>
+
+        <h3 id="shipped-recently">Recently shipped</h3>
+        <ul>
+          <li><a href="serve.html"><code>cc serve</code></a> — HTTP PDP mode with structured audit logs, shadow mode, SIGHUP reload, bearer-token auth, CORS, and Prometheus metrics.</li>
+          <li><strong>Docker conformance runners</strong> — every SDK ships a <code>Dockerfile</code> so you can verify it without installing its runtime locally.</li>
+        </ul>
+
+        <nav class="page-nav">
+          <a href="sdks.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← SDKs</span>
+          </a>
+          <a href="when-to-use.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">When to use CrowdControl →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

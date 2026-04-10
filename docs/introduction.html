@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>What is CrowdControl — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>What is CrowdControl</h1>
+        <p class="lede">CrowdControl is a dependency-free policy language for evaluating rules against structured data. It is intentionally less powerful than CEL, Cedar, or Rego — the design goal is that a security engineer who has never seen a <code>.cc</code> file before can read a policy and understand it in under 30 seconds.</p>
+
+        <h2 id="the-one-sentence-pitch">The one-sentence pitch</h2>
+        <p>Write <code>forbid</code>/<code>warn</code>/<code>permit</code> rules, hand them a JSON document, get back a list of which rules fired and why.</p>
+
+<pre><code class="language-crowdcontrol">forbid "no-draft-production" {
+  pr.draft == true
+  project.workspace == "production"
+  message "draft PRs cannot target production"
+}</code></pre>
+
+        <p>That's the whole language in one example. No entities. No principals. No action/resource/context model. No logic programming. Just rules against a document.</p>
+
+        <h2 id="what-its-for">What it's for</h2>
+        <p>CrowdControl is the right shape when the question you're answering is <em>"is this structured document acceptable?"</em>. Common cases:</p>
+        <ul>
+          <li>Gating Terraform plans in CI (<em>"no more than 5 destroys without platform team approval"</em>)</li>
+          <li>Reviewing GitHub PRs (<em>"infra file changes require infra team"</em>)</li>
+          <li>Checking Kubernetes manifests (<em>"no <code>:latest</code> tags in production"</em>)</li>
+          <li>Linting config files (<em>"every service must have a <code>owner</code> field"</em>)</li>
+          <li>Enforcing change review policies (<em>"drafts can't target production"</em>)</li>
+        </ul>
+
+        <h2 id="what-its-not">What it's not</h2>
+        <p>CrowdControl is <strong>not</strong> the right shape when:</p>
+        <ul>
+          <li>You need entity-based authorization with users, groups, and relationships → use <a href="https://www.cedarpolicy.com/">CEDAR</a>, <a href="https://authzed.com/spicedb">SpiceDB</a>, or <a href="https://openfga.dev/">OpenFGA</a>.</li>
+          <li>You need a Turing-complete policy engine for arbitrary logic → use <a href="https://www.openpolicyagent.org/">Rego / OPA</a>.</li>
+          <li>You need machine-checked proofs about policy semantics → use <a href="https://www.cedarpolicy.com/">CEDAR</a>.</li>
+        </ul>
+        <p>See the <a href="comparison.html">comparison page</a> for the long version.</p>
+
+        <h2 id="design-principles">Design principles</h2>
+        <ol>
+          <li><strong>Readability above all.</strong> If a rule needs a two-paragraph comment to explain it, the language has failed.</li>
+          <li><strong>Zero runtime dependencies.</strong> The Go reference is pure stdlib. Every SDK uses only its host language's stdlib.</li>
+          <li><strong>No domain concepts baked in.</strong> CrowdControl evaluates a <code>map[string]any</code>. It has no built-in awareness of Terraform, GitHub, Kubernetes, or anything else. Flatten your data into a JSON doc and write rules against it.</li>
+          <li><strong>Bounded evaluation.</strong> Every rule terminates in time proportional to the input. No recursion, no user-defined functions, no infinite loops.</li>
+          <li><strong>Explain mode is a first-class feature.</strong> When a rule fires (or doesn't), you should be able to see exactly why, annotated with the resolved field values.</li>
+        </ol>
+
+        <h2 id="what-you-get">What you get</h2>
+        <ul>
+          <li>A small, readable DSL with a purpose-built grammar</li>
+          <li>A reference Go implementation (library + CLI + LSP)</li>
+          <li>Native SDKs for Python, TypeScript, Ruby, Kotlin, and PHP — all passing the same conformance suite</li>
+          <li>A VS Code extension with syntax highlighting and diagnostics</li>
+          <li>A static schema validator that catches typos and type mismatches before runtime</li>
+          <li>An explain mode that traces every condition in every rule</li>
+        </ul>
+
+        <nav class="page-nav">
+          <a href="index.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← Overview</span>
+          </a>
+          <a href="quickstart.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">Quickstart →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

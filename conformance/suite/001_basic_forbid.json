@@ -1,0 +1,13 @@
+{
+  "name": "001_basic_forbid",
+  "description": "forbid rule fires when its single condition matches",
+  "policy": "forbid \"no-public\" {\n  resource.acl == \"public-read\"\n  message \"bucket is public\"\n}\n",
+  "input": {
+    "resource": {"acl": "public-read"}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "no-public", "kind": "forbid", "passed": false, "message_contains": "bucket is public"}
+    ]
+  }
+}

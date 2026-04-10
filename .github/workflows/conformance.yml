@@ -1,0 +1,116 @@
+name: Conformance
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  go:
+    name: Go reference runner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      - name: Run conformance suite (Go)
+        run: go run ./conformance/runners/go -suite ./conformance/suite -v
+
+  python:
+    name: Python SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run conformance suite (Python)
+        working-directory: sdks/python
+        run: python conformance_runner.py -v
+      - name: Run unit tests (Python)
+        working-directory: sdks/python
+        run: python -m unittest discover -s tests -v
+
+  typescript:
+    name: TypeScript SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dev dependency (typescript only)
+        working-directory: sdks/typescript
+        run: npm install
+      - name: Build
+        working-directory: sdks/typescript
+        run: npm run build
+      - name: Run conformance suite (TypeScript)
+        working-directory: sdks/typescript
+        run: npm run conformance
+      - name: Run unit tests (TypeScript)
+        working-directory: sdks/typescript
+        run: npm test
+
+  ruby:
+    name: Ruby SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - name: Run conformance suite (Ruby)
+        working-directory: sdks/ruby
+        run: ruby conformance_runner.rb
+      - name: Run unit tests (Ruby)
+        working-directory: sdks/ruby
+        run: |
+          for t in test/test_*.rb; do
+            ruby -Ilib -Itest "$t"
+          done
+
+  kotlin:
+    name: Kotlin SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Install kotlinc
+        run: |
+          curl -sSL -o /tmp/kotlin.zip https://github.com/JetBrains/kotlin/releases/download/v1.9.23/kotlin-compiler-1.9.23.zip
+          unzip -q /tmp/kotlin.zip -d /opt
+          echo "/opt/kotlinc/bin" >> "$GITHUB_PATH"
+      - name: Install JUnit 4 + Hamcrest for kotlin-test-junit
+        run: |
+          curl -sSL -o /opt/kotlinc/lib/junit-4.13.2.jar https://repo1.maven.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar
+          curl -sSL -o /opt/kotlinc/lib/hamcrest-core-1.3.jar https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+      - name: Build
+        working-directory: sdks/kotlin
+        run: bash build.sh
+      - name: Run conformance suite (Kotlin)
+        working-directory: sdks/kotlin
+        run: java -cp crowdcontrol.jar io.github.mikemackintosh.crowdcontrol.ConformanceRunner
+      - name: Run unit tests (Kotlin)
+        working-directory: sdks/kotlin
+        run: bash test.sh
+
+  php:
+    name: PHP SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - name: Run conformance suite (PHP)
+        working-directory: sdks/php
+        run: php conformance_runner.php
+      - name: Run unit tests (PHP)
+        working-directory: sdks/php
+        run: php tests/run.php

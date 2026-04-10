@@ -1,0 +1,13 @@
+{
+  "name": "015_is_subset",
+  "description": "is_subset: all elements of LHS appear in RHS",
+  "policy": "forbid \"unauthorized-action\" {\n  not request.actions is_subset [\"read\", \"list\"]\n  message \"only read/list allowed\"\n}\n",
+  "input": {
+    "request": {"actions": ["read", "write"]}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "unauthorized-action", "kind": "forbid", "passed": false, "message_contains": "only read/list"}
+    ]
+  }
+}

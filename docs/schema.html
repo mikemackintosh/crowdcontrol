@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schema validation — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>Schema validation</h1>
+        <p class="lede">CrowdControl has an opt-in static validator that catches field typos, type mismatches, and bad operator usage before any document is evaluated. It's a compile-time safety net.</p>
+
+        <h2 id="defining-a-schema">Defining a schema</h2>
+        <p>A schema is a JSON file that maps dotted field paths to expected types.</p>
+
+<pre><code class="language-json">{
+  "fields": {
+    "user.name":      "string",
+    "user.groups":    "list",
+    "pr.draft":       "bool",
+    "pr.approvals":   "number",
+    "resource.type":  "string",
+    "resource.name":  "string",
+    "resource.change": "map",
+    "labels":         "list",
+    "plan.destroys":  "list",
+    "plan.creates":   "list"
+  }
+}</code></pre>
+
+        <p>Supported types: <code>string</code>, <code>number</code>, <code>bool</code>, <code>list</code>, <code>map</code>, <code>any</code>.</p>
+        <ul>
+          <li>Fields typed as <code>map</code> allow arbitrary nested access (e.g. <code>resource.change.after.acl</code> is valid when <code>resource.change</code> is <code>map</code>).</li>
+          <li>Fields typed as <code>any</code> skip all type checks.</li>
+        </ul>
+
+        <h2 id="running-validation">Running validation</h2>
+<pre><code class="language-bash">cc validate --schema ./schema.json ./policies</code></pre>
+
+        <h2 id="what-it-catches">What it catches</h2>
+        <ul>
+          <li><strong>Unknown fields</strong> — a field path that does not appear in the schema and whose parent is not a <code>map</code>. Likely a typo.</li>
+          <li><strong>Type mismatches</strong> — using a numeric operator (<code>&lt;</code>, <code>&gt;</code>) on a string field, <code>contains</code> on a bool field, <code>intersects</code>/<code>is_subset</code> on a non-list field, <code>matches</code>/<code>matches_regex</code> on a non-string field.</li>
+          <li><strong>Aggregate target errors</strong> — <code>count(field)</code> where the schema says the field is neither a list nor a number.</li>
+          <li><strong>Quantifier target errors</strong> — <code>any field ...</code> or <code>all field ...</code> where the field is not a list.</li>
+          <li><strong>Arithmetic type errors</strong> — a field used in an arithmetic expression that the schema says is not a number.</li>
+          <li><strong>Message interpolation errors</strong> — <code>{field.path}</code> references in <code>message</code> strings that don't exist.</li>
+        </ul>
+
+        <h2 id="example-output">Example output</h2>
+<pre><code>WARN [blast-radius]: unknown field "plan.destorys" — not in schema (typo?)
+WARN [production-approval]: pr.approvals &lt; used with numeric operator, schema says string</code></pre>
+
+        <div class="callout">
+          <div class="callout-title">Note</div>
+          <p>Schema validation produces warnings, never errors. You can ship a policy with schema warnings — but CI should fail the build on them.</p>
+        </div>
+
+        <nav class="page-nav">
+          <a href="conditions.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← Conditions & operators</span>
+          </a>
+          <a href="explain.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">Explain mode →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

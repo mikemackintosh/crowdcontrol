@@ -1,0 +1,14 @@
+{
+  "name": "030_multiple_conditions_one_fails",
+  "description": "if any AND'd condition is false, the rule does not fire",
+  "policy": "forbid \"prod-iam-by-intern\" {\n  resource.type == \"iam_role\"\n  resource.env == \"production\"\n  user.role == \"intern\"\n  message \"intern cannot touch prod IAM\"\n}\n",
+  "input": {
+    "resource": {"type": "iam_role", "env": "staging"},
+    "user": {"role": "intern"}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "prod-iam-by-intern", "kind": "forbid", "passed": true}
+    ]
+  }
+}

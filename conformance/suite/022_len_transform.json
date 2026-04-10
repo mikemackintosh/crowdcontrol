@@ -1,0 +1,14 @@
+{
+  "name": "022_len_transform",
+  "description": "len() returns string or list length",
+  "policy": "forbid \"empty-name\" {\n  len(resource.name) == 0\n  message \"name required\"\n}\nforbid \"too-many-tags\" {\n  len(resource.tags) > 10\n  message \"too many tags\"\n}\n",
+  "input": {
+    "resource": {"name": "", "tags": ["a", "b"]}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "empty-name", "kind": "forbid", "passed": false, "message_contains": "name required"},
+      {"rule": "too-many-tags", "kind": "forbid", "passed": true}
+    ]
+  }
+}

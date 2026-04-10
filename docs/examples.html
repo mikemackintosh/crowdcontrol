@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Example policies — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>Example policies</h1>
+        <p class="lede">Realistic patterns for gating Terraform plans, GitHub PRs, Kubernetes manifests, and config files.</p>
+
+        <h2 id="terraform-blast-radius">Terraform blast radius</h2>
+        <p>Deny large destructive changes unless the author is on the platform team.</p>
+<pre><code class="language-crowdcontrol">forbid "blast-radius" {
+  description "Large destructive changes require platform-team approval"
+  owner       "platform"
+
+  count(plan.destroys) > 5
+
+  unless author.teams contains "platform-team"
+
+  message "too many destroys ({count(plan.destroys)}) — needs platform-team"
+}</code></pre>
+
+        <h2 id="risk-score">Weighted risk score</h2>
+        <p>Use arithmetic to build a composite risk metric.</p>
+<pre><code class="language-crowdcontrol">forbid "risk-score" {
+  description "Composite risk score: destroys weighted 3x, creates 1x"
+
+  count(plan.destroys) * 3 + count(plan.creates) > 20
+
+  unless author.teams contains "platform-team"
+
+  message "risk score exceeded"
+}</code></pre>
+
+        <h2 id="iam-gate">IAM changes need security review</h2>
+<pre><code class="language-crowdcontrol">forbid "sensitive-iam" {
+  description "IAM changes require security team or explicit approval label"
+  owner       "security"
+  link        "https://wiki.example.com/iam-change-policy"
+
+  resource.type matches "aws_iam_*"
+
+  unless author.teams contains "security"
+  unless labels contains "security-approved"
+  unless pr.approvals >= 2
+
+  message "{resource.type}.{resource.name} requires security approval"
+}</code></pre>
+
+        <h2 id="naming-convention">Naming convention</h2>
+<pre><code class="language-crowdcontrol">warn "naming-convention" {
+  description "Resources should follow kebab-case naming"
+
+  not resource.name matches_regex "^[a-z][a-z0-9-]+$"
+
+  message "{resource.name} doesn't follow naming convention"
+}</code></pre>
+
+        <h2 id="no-public-buckets">No public S3 buckets</h2>
+<pre><code class="language-crowdcontrol">forbid "no-public-buckets" {
+  description "S3 buckets must not be publicly accessible"
+  owner       "platform-security"
+
+  resource.type == "aws_s3_bucket"
+  resource.change.after.acl in ["public-read", "public-read-write"]
+
+  unless labels contains "public-data-approved"
+
+  message "{resource.name} cannot be public"
+}</code></pre>
+
+        <h2 id="github-draft-gate">GitHub draft PR gate</h2>
+<pre><code class="language-crowdcontrol">forbid "no-draft-production" {
+  description "Draft PRs cannot target production"
+
+  pr.draft == true
+  project.workspace == "production"
+
+  message "draft PRs cannot target production"
+}
+
+forbid "production-approvals" {
+  description "Production deploys require at least 2 approvals"
+
+  project.workspace == "production"
+  pr.approvals < 2
+
+  message "production requires 2 approvals (currently {pr.approvals})"
+}</code></pre>
+
+        <h2 id="infra-file-gate">Infra file gate</h2>
+<pre><code class="language-crowdcontrol">forbid "infra-file-gate" {
+  description "Infra file changes require platform team"
+
+  any pr.changed_files matches "infra/*"
+
+  unless author.teams contains "platform-team"
+
+  message "infra file changes require platform-team"
+}</code></pre>
+
+        <h2 id="k8s-no-latest">Kubernetes: no :latest tags in prod</h2>
+<pre><code class="language-crowdcontrol">forbid "no-latest-prod" {
+  description "Production workloads must pin image tags"
+
+  resource.kind == "Deployment"
+  resource.namespace == "production"
+  any resource.containers matches "*:latest"
+
+  message "production deployments must not use :latest image tags"
+}</code></pre>
+
+        <h2 id="config-owner">Config file must have owner</h2>
+<pre><code class="language-crowdcontrol">forbid "service-must-have-owner" {
+  description "Every service must declare an owner"
+
+  resource.kind == "Service"
+  not has resource.metadata.owner
+
+  message "service {resource.metadata.name} is missing an owner field"
+}</code></pre>
+
+        <h2 id="permit-override">Permit as audit trail</h2>
+        <p>Use <code>permit</code> rules to emit positive audit messages when a specific allowance applies.</p>
+<pre><code class="language-crowdcontrol">permit "security-iam-override" {
+  description "Security team can modify IAM resources"
+
+  resource.type matches "aws_iam_*"
+  author.teams contains "security"
+
+  message "IAM change permitted by security team member {author.name}"
+}</code></pre>
+
+        <nav class="page-nav">
+          <a href="explain.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← Explain mode</span>
+          </a>
+          <a href="embedding.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">Embedding in Go →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "008_eq_neq",
+  "description": "== and != string comparisons",
+  "policy": "forbid \"a\" {\n  x == \"hello\"\n  message \"matched\"\n}\nforbid \"b\" {\n  x != \"world\"\n  message \"not world\"\n}\n",
+  "input": {
+    "x": "hello"
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "a", "kind": "forbid", "passed": false, "message_contains": "matched"},
+      {"rule": "b", "kind": "forbid", "passed": false, "message_contains": "not world"}
+    ]
+  }
+}

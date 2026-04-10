@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Language reference — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>Language reference</h1>
+        <p class="lede">The complete CrowdControl grammar, operators, and semantics. For the normative spec (used by SDK ports), see <a href="https://github.com/mikemackintosh/crowdcontrol/blob/main/SPEC.md">SPEC.md</a>.</p>
+
+        <h2 id="rule-kinds">Rule kinds</h2>
+        <p>CrowdControl has three rule kinds. Every rule is a block with a name and a body.</p>
+        <ul>
+          <li><strong><code>forbid "name" { ... }</code></strong> — denies when all conditions match, unless an <code>unless</code> clause saves it.</li>
+          <li><strong><code>warn "name" { ... }</code></strong> — same semantics as forbid, but tooling should treat it as non-blocking.</li>
+          <li><strong><code>permit "name" { ... }</code></strong> — explicit allow. Emits a message but does not override a sibling forbid at the engine level (that's a higher-level adapter concern).</li>
+        </ul>
+
+        <h2 id="rule-body">Rule body</h2>
+        <p>Inside a rule body, you can have:</p>
+        <ul>
+          <li>Optional metadata: <code>description</code>, <code>owner</code>, <code>link</code></li>
+          <li>One or more <strong>conditions</strong> (all AND'd together)</li>
+          <li>Zero or more <code>unless</code> clauses (OR'd — any one true saves the rule)</li>
+          <li>An optional <code>message</code> with <code>{field.path}</code> interpolation</li>
+        </ul>
+
+<pre><code class="language-crowdcontrol">forbid "example" {
+  description "Human-readable explanation"
+  owner       "team-name"
+  link        "https://runbook.example.com/..."
+
+  # conditions (all AND'd)
+  user.role == "intern"
+  resource.environment == "production"
+
+  # escape clauses (OR'd — any one saves the rule)
+  unless user.groups contains "platform-oncall"
+  unless has labels.emergency-approved
+
+  message "{user.name} cannot touch {resource.name} in prod"
+}</code></pre>
+
+        <h2 id="conditions">Conditions</h2>
+        <p>Conditions reference fields of the input document using dotted paths.</p>
+
+        <h3 id="comparisons">Comparisons</h3>
+<pre><code class="language-crowdcontrol">user.role == "admin"
+pr.approvals != 0
+pr.approvals >= 2
+count(plan.destroys) < 10</code></pre>
+
+        <h3 id="list-membership">List membership</h3>
+<pre><code class="language-crowdcontrol">resource.type in ["aws_iam_role", "aws_kms_key"]
+author.teams contains "security"
+pr.changed_files contains "secrets.tf"</code></pre>
+
+        <h3 id="list-operations">List operations</h3>
+<pre><code class="language-crowdcontrol">author.teams intersects ["security", "platform"]
+labels is_subset ["approved", "reviewed", "urgent"]</code></pre>
+
+        <h3 id="patterns">Patterns and regex</h3>
+<pre><code class="language-crowdcontrol">resource.type matches "aws_iam_*"
+resource.name matches_regex "^[a-z][a-z0-9_-]+$"</code></pre>
+
+        <h3 id="existence">Field existence</h3>
+<pre><code class="language-crowdcontrol">has resource.change.after.acl
+not has config.required_field</code></pre>
+
+        <h3 id="quantifiers">Quantifiers</h3>
+<pre><code class="language-crowdcontrol">any pr.changed_files matches "infra/*"
+all pr.commit_authors in ["alice", "bob", "charlie"]</code></pre>
+        <p>Empty list: <code>any</code> → false, <code>all</code> → true (vacuous).</p>
+
+        <h3 id="aggregates">Aggregates</h3>
+<pre><code class="language-crowdcontrol">count(plan.destroys) > 5
+count(plan.creates) + count(plan.destroys) > 20</code></pre>
+
+        <h3 id="transforms">Transforms</h3>
+<pre><code class="language-crowdcontrol">lower(author.name) == "admin"
+upper(resource.provider) == "AWS"
+len(pr.title) >= 10
+len(labels) >= 2</code></pre>
+
+        <h3 id="arithmetic">Arithmetic</h3>
+<pre><code class="language-crowdcontrol">count(plan.destroys) * 3 + count(plan.creates) > 20
+pr.approvals * 2 >= count(plan.destroys)</code></pre>
+        <p>Operators: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>. Follows mathematical precedence. Division by zero evaluates to false (never panics).</p>
+
+        <h3 id="boolean-operators">Boolean operators</h3>
+<pre><code class="language-crowdcontrol"># not — negates a single condition
+not resource.type matches "aws_*"
+
+# or — disjunction within a single line
+resource.type == "aws_iam_role" or resource.type == "aws_kms_key"</code></pre>
+        <p>Multiple condition lines are always AND'd. <code>or</code> only binds within a single line.</p>
+
+        <h2 id="unless-clauses">Unless clauses</h2>
+        <p><code>unless</code> is CrowdControl's escape hatch. If <em>any</em> unless clause is true, the rule does not fire — regardless of whether the main conditions matched.</p>
+
+<pre><code class="language-crowdcontrol">forbid "sensitive-iam" {
+  resource.type matches "aws_iam_*"
+
+  unless author.teams contains "security"
+  unless labels contains "security-approved"
+  unless pr.approvals >= 2
+
+  message "IAM changes need security approval"
+}</code></pre>
+
+        <p>Any one of the three unless clauses being true saves the rule. Think of it as "forbid this… unless <em>any</em> of these exceptions apply".</p>
+
+        <h2 id="messages">Messages and interpolation</h2>
+        <p><code>message</code> strings support <code>{field.path}</code> placeholders that resolve at result time. You can also use <code>{count(field.path)}</code>.</p>
+
+<pre><code class="language-crowdcontrol">message "{user.name} tried to delete {resource.address}"
+message "too many destroys ({count(plan.destroys)}) — needs platform-team"</code></pre>
+
+        <p>Unresolved placeholders are left literally, which makes missing fields easy to spot.</p>
+
+        <h2 id="default-effects">Default effects</h2>
+        <p>The engine supports two modes:</p>
+        <ul>
+          <li><strong>DefaultAllow</strong> (default): documents pass unless a <code>forbid</code> fires.</li>
+          <li><strong>DefaultDeny</strong>: documents are denied unless a <code>permit</code> fires.</li>
+        </ul>
+
+        <p>In default-deny mode, if no permit fires and nothing already denied the document, an implicit <code>(default-deny)</code> result is added.</p>
+
+        <h2 id="comments">Comments</h2>
+<pre><code class="language-crowdcontrol"># line comment
+// also a line comment</code></pre>
+        <p>There are no block comments.</p>
+
+        <nav class="page-nav">
+          <a href="installation.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← Installation</span>
+          </a>
+          <a href="conditions.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">Conditions & operators →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

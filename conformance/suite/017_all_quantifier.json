@@ -1,0 +1,13 @@
+{
+  "name": "017_all_quantifier",
+  "description": "all requires every element to satisfy the predicate",
+  "policy": "forbid \"non-prod-tags\" {\n  not all resource.tags matches \"prod-*\"\n  message \"all tags must be prod-prefixed\"\n}\n",
+  "input": {
+    "resource": {"tags": ["prod-web", "prod-api", "staging"]}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "non-prod-tags", "kind": "forbid", "passed": false, "message_contains": "prod-prefixed"}
+    ]
+  }
+}

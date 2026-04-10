@@ -1,0 +1,14 @@
+{
+  "name": "009_numeric_comparisons",
+  "description": "<, >, <=, >= numeric comparisons",
+  "policy": "forbid \"too-big\" {\n  size > 100\n  message \"too big\"\n}\nforbid \"too-small\" {\n  size < 5\n  message \"too small\"\n}\n",
+  "input": {
+    "size": 200
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "too-big", "kind": "forbid", "passed": false, "message_contains": "too big"},
+      {"rule": "too-small", "kind": "forbid", "passed": true}
+    ]
+  }
+}

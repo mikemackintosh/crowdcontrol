@@ -1,0 +1,15 @@
+{
+  "name": "026_default_deny",
+  "description": "default_effect=deny: implicit (default-deny) appended when nothing matches",
+  "policy": "permit \"specific\" {\n  user.role == \"admin\"\n  message \"approved\"\n}\n",
+  "input": {
+    "user": {"role": "developer"}
+  },
+  "default_effect": "deny",
+  "expect": {
+    "decisions": [
+      {"rule": "specific", "kind": "permit", "passed": true},
+      {"rule": "(default-deny)", "kind": "forbid", "passed": false, "message_contains": "denied by default"}
+    ]
+  }
+}

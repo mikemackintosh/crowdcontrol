@@ -1,0 +1,16 @@
+{
+  "name": "mikemackintosh/crowdcontrol",
+  "description": "CrowdControl policy language — pure-PHP SDK",
+  "type": "library",
+  "license": "MIT",
+  "keywords": ["policy", "crowdcontrol", "gating", "authorization"],
+  "homepage": "https://github.com/mikemackintosh/crowdcontrol",
+  "require": {
+    "php": ">=8.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "MikeMackintosh\\CrowdControl\\": "src/"
+    }
+  }
+}

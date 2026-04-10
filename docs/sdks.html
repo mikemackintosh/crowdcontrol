@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SDKs — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>SDKs</h1>
+        <p class="lede">CrowdControl ships native parser + evaluator implementations in six languages. Every SDK passes the same <a href="conformance.html">conformance suite</a> and produces identical decisions for identical inputs.</p>
+
+        <h2 id="supported">Supported languages</h2>
+        <div class="table-wrap">
+        <table>
+          <thead><tr><th>Language</th><th>Status</th><th>Path</th><th>Runtime deps</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Go</strong></td><td>Reference</td><td>repo root</td><td>stdlib only</td></tr>
+            <tr><td><strong>Python</strong></td><td>Stage 2</td><td><code>sdks/python/</code></td><td>stdlib only</td></tr>
+            <tr><td><strong>TypeScript</strong></td><td>Stage 2</td><td><code>sdks/typescript/</code></td><td>stdlib only</td></tr>
+            <tr><td><strong>Ruby</strong></td><td>Stage 2</td><td><code>sdks/ruby/</code></td><td>stdlib only</td></tr>
+            <tr><td><strong>Kotlin</strong></td><td>Stage 2</td><td><code>sdks/kotlin/</code></td><td>stdlib only</td></tr>
+            <tr><td><strong>PHP</strong></td><td>Stage 2</td><td><code>sdks/php/</code></td><td>stdlib only</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <p>Every SDK uses only its host language's standard library. No external runtime dependencies.</p>
+
+        <h2 id="go">Go (reference)</h2>
+<pre><code class="language-bash">go get github.com/mikemackintosh/crowdcontrol</code></pre>
+
+<pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "github.com/mikemackintosh/crowdcontrol"
+)
+
+func main() {
+    eng, err := crowdcontrol.New([]string{"./policies"})
+    if err != nil { panic(err) }
+
+    results := eng.Evaluate(map[string]any{
+        "user":    map[string]any{"name": "alex", "role": "intern"},
+        "request": map[string]any{"action": "delete"},
+        "resource": map[string]any{"environment": "production"},
+    })
+
+    for _, r := range results {
+        fmt.Printf("%s [%s] passed=%v: %s\n", r.Rule, r.Kind, r.Passed, r.Message)
+    }
+}</code></pre>
+
+        <h2 id="python">Python</h2>
+<pre><code class="language-bash">cd sdks/python &amp;&amp; pip install -e .</code></pre>
+
+        <h2 id="typescript">TypeScript</h2>
+<pre><code class="language-bash">cd sdks/typescript &amp;&amp; npm install &amp;&amp; npm run build</code></pre>
+
+        <h2 id="ruby">Ruby</h2>
+<pre><code class="language-bash">cd sdks/ruby &amp;&amp; bundle install</code></pre>
+
+        <h2 id="kotlin">Kotlin</h2>
+<pre><code class="language-bash">cd sdks/kotlin &amp;&amp; ./gradlew build</code></pre>
+
+        <h2 id="php">PHP</h2>
+<pre><code class="language-bash">cd sdks/php &amp;&amp; composer install</code></pre>
+
+        <h2 id="docker">Docker images</h2>
+        <p>Every SDK ships a <code>Dockerfile</code> so you can run its conformance suite without installing its runtime locally. Always build from the repo root — the build context needs both the SDK directory and <code>conformance/</code>.</p>
+
+<pre><code class="language-bash"># build and run one SDK
+docker build -f sdks/python/Dockerfile -t crowdcontrol-python .
+docker run --rm crowdcontrol-python
+
+# run every SDK via docker compose
+docker compose up --build --abort-on-container-exit
+
+# or use the helper script
+./sdks/run-conformance.sh              # all of them
+./sdks/run-conformance.sh python ruby  # a subset</code></pre>
+
+        <p>Each container exits <code>0</code> on full pass and non-zero on any failure — drop them straight into CI.</p>
+
+        <h2 id="why-native">Why native ports?</h2>
+        <p>CrowdControl could have shipped one implementation and bindings for everyone else — that's the usual pattern. But the grammar is small enough (~1500 LOC in the Go reference) that rewriting it idiomatically in each target language is cheaper than maintaining FFI bindings and their quirks.</p>
+        <p>The upside: every SDK is a zero-dependency, native install. No CGo, no WASM loader, no shared library you have to vendor. The downside: every SDK has to pass the conformance suite, and when the spec changes, every SDK ships an update.</p>
+
+        <nav class="page-nav">
+          <a href="cli.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← CLI reference</span>
+          </a>
+          <a href="conformance.html" class="next">
+            <span class="label">Next</span>
+            <span class="title">Conformance suite →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>

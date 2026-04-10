@@ -1,0 +1,25 @@
+{
+  "user": {
+    "name": "alice",
+    "groups": ["developers"]
+  },
+  "resource": {
+    "type": "storage_bucket",
+    "name": "logs-prod",
+    "acl": "public-read",
+    "environment": "production"
+  },
+  "request": {
+    "action": "create",
+    "approved": false,
+    "approvers": [],
+    "draft": false,
+    "labels": ["bugfix"]
+  },
+  "plan": {
+    "changes": [
+      {"resource": "storage_bucket.logs-prod", "action": "create"},
+      {"resource": "iam_policy.logs-writer", "action": "update"}
+    ]
+  }
+}

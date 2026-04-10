@@ -1,0 +1,13 @@
+{
+  "name": "018_count_aggregate",
+  "description": "count() aggregates list cardinality",
+  "policy": "forbid \"too-many-deletes\" {\n  count(plan.deletes) > 5\n  message \"{count(plan.deletes)} deletes is too many\"\n}\n",
+  "input": {
+    "plan": {"deletes": [1, 2, 3, 4, 5, 6, 7]}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "too-many-deletes", "kind": "forbid", "passed": false, "message_contains": "7 deletes"}
+    ]
+  }
+}

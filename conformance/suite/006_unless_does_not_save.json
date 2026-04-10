@@ -1,0 +1,15 @@
+{
+  "name": "006_unless_does_not_save",
+  "description": "unless clause does not save when its condition is false",
+  "policy": "forbid \"prod-needs-approval\" {\n  resource.env == \"production\"\n  request.approved == false\n  unless user.role == \"admin\"\n  message \"prod requires approval\"\n}\n",
+  "input": {
+    "resource": {"env": "production"},
+    "request": {"approved": false},
+    "user": {"role": "developer"}
+  },
+  "expect": {
+    "decisions": [
+      {"rule": "prod-needs-approval", "kind": "forbid", "passed": false, "message_contains": "prod requires approval"}
+    ]
+  }
+}

@@ -1,0 +1,75 @@
+name: Deploy docs site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'cmd/cc-wasm/**'
+      - 'crowdcontrol.go'
+      - 'evaluator/**'
+      - 'parser/**'
+      - 'types/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# Only one deploy at a time; cancel older in-progress deploys when a
+# new commit lands.
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build CrowdControl WASM module
+        run: |
+          mkdir -p docs/assets/wasm
+          GOOS=js GOARCH=wasm go build \
+            -ldflags="-s -w" -trimpath \
+            -o docs/assets/wasm/cc.wasm \
+            ./cmd/cc-wasm
+          # The Go distribution ships wasm_exec.js — copy it alongside.
+          cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" docs/assets/wasm/wasm_exec.js
+          ls -la docs/assets/wasm/
+
+      - name: Verify WASM loads (smoke test)
+        run: |
+          test -f docs/assets/wasm/cc.wasm
+          test -f docs/assets/wasm/wasm_exec.js
+          test $(stat -c%s docs/assets/wasm/cc.wasm) -gt 1000000
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

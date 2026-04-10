@@ -1,0 +1,14 @@
+{
+  "name": "027_default_deny_permit_allows",
+  "description": "default_effect=deny: matching permit prevents the implicit denial",
+  "policy": "permit \"admins\" {\n  user.role == \"admin\"\n  message \"approved\"\n}\n",
+  "input": {
+    "user": {"role": "admin"}
+  },
+  "default_effect": "deny",
+  "expect": {
+    "decisions": [
+      {"rule": "admins", "kind": "permit", "passed": true, "message_contains": "approved"}
+    ]
+  }
+}

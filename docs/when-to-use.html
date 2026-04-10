@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>When to use CrowdControl — CrowdControl</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/prism-crowdcontrol.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+      <article class="doc">
+        <h1>When to use CrowdControl</h1>
+        <p class="lede">The short decision guide. For the long version, see the <a href="comparison.html">comparison page</a>.</p>
+
+        <h2 id="pick-cc-when">Pick CrowdControl when</h2>
+        <p>Most of these should be true:</p>
+        <ul>
+          <li>Rules should be reviewable by people who don't write code every day.</li>
+          <li>The thing you're gating is a <strong>document</strong> — a Terraform plan, a GitHub event, a Kubernetes manifest, a config file — not a runtime request.</li>
+          <li>You want the fastest path from "new rule idea" to "new rule in CI".</li>
+          <li>You want a dependency-free embed, not another service to run.</li>
+          <li>Your rules are simple enough that a bounded grammar is fine.</li>
+        </ul>
+
+        <h2 id="pick-other-when">Pick something else when</h2>
+        <p>There's a real <strong>structural</strong> gap:</p>
+        <ul>
+          <li>You need entity-based authorization across a user/resource graph → <strong><a href="https://www.cedarpolicy.com/">CEDAR</a></strong>, <strong><a href="https://authzed.com/spicedb">SpiceDB</a></strong>, or <strong><a href="https://openfga.dev/">OpenFGA</a></strong>.</li>
+          <li>You need relationship/Zanzibar-style authorization queries → <strong>SpiceDB</strong> or <strong>OpenFGA</strong>.</li>
+          <li>You need machine-checked proofs about policy semantics → <strong>CEDAR</strong>.</li>
+          <li>You need a Turing-complete policy engine and the readability cost is acceptable → <strong><a href="https://www.openpolicyagent.org/">Rego / OPA</a></strong>.</li>
+        </ul>
+
+        <h2 id="roadmap-gaps">Roadmap gaps (not reasons to switch)</h2>
+        <p>These are operational / tooling things that don't exist yet but don't belong in the "switch to something else" column:</p>
+        <ul>
+          <li>A <code>cc serve</code> PDP with audit logs and rollout controls</li>
+          <li>Policy bundle distribution</li>
+          <li>Hosted playground</li>
+          <li>Metrics and health endpoints</li>
+        </ul>
+        <p>All of these are thin wrappers on top of the existing engine. If any are blockers, <a href="https://github.com/mikemackintosh/crowdcontrol/issues">open an issue</a>.</p>
+
+        <h2 id="good-fit-examples">Good-fit examples</h2>
+        <ul>
+          <li><strong>Terraform PR gate</strong> — evaluate flattened plan + PR metadata against rules in CI.</li>
+          <li><strong>GitHub branch protection</strong> — check PR shape, approvals, file paths, labels.</li>
+          <li><strong>K8s admission shim</strong> — evaluate manifests before they hit the cluster.</li>
+          <li><strong>Config lint</strong> — every service must have <code>owner</code>, <code>runbook</code>, <code>oncall</code>.</li>
+          <li><strong>Change review checklists</strong> — gate promotion between environments.</li>
+        </ul>
+
+        <h2 id="bad-fit-examples">Bad-fit examples</h2>
+        <ul>
+          <li><strong>Per-request API authorization</strong> — use CEDAR or Cerbos.</li>
+          <li><strong>Zanzibar relationship queries</strong> — "does Alice share folder X with Bob?" — use SpiceDB.</li>
+          <li><strong>Admission control with recursive policy composition</strong> — use OPA/Gatekeeper.</li>
+        </ul>
+
+        <nav class="page-nav">
+          <a href="comparison.html" class="prev">
+            <span class="label">Previous</span>
+            <span class="title">← Comparison</span>
+          </a>
+          <a href="index.html" class="next">
+            <span class="label">Home</span>
+            <span class="title">Overview →</span>
+          </a>
+        </nav>
+      </article>
+    </main>
+    <aside class="toc" id="toc"></aside>
+  </div>
+</body>
+</html>
