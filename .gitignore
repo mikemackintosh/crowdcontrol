@@ -17,17 +17,9 @@ bin/
 docs/assets/wasm/cc.wasm
 docs/assets/wasm/wasm_exec.js
 
-# Zed dev extension staging — produced by scripts/install-zed-extension.sh
-/.zed-dev-extension/
-
-# Rust build output (Zed extension) — Cargo.lock IS tracked so
-# the extension is reproducible for anyone building from source.
-editors/zed/target/
-
-# Tree-sitter grammar build outputs — regenerated on demand
-tree-sitter-crowdcontrol/crowdcontrol.wasm
-tree-sitter-crowdcontrol/node_modules/
-tree-sitter-crowdcontrol/build/
+# (Zed extension, tree-sitter grammar, and VS Code extension moved
+# to their own repos: zed-crowdcontrol, tree-sitter-crowdcontrol,
+# and vscode-crowdcontrol.)
 
 # Test
 *.test

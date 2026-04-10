@@ -131,12 +131,27 @@ and produces identical decisions for identical inputs.
 Every SDK uses only its host language's standard library — no external runtime
 dependencies.
 
+## Editor support
+
+| Editor | Repo | Status |
+| --- | --- | --- |
+| **VS Code** | [mikemackintosh/vscode-crowdcontrol](https://github.com/mikemackintosh/vscode-crowdcontrol) | Syntax highlighting + LSP diagnostics |
+| **Zed** | [mikemackintosh/zed-crowdcontrol](https://github.com/mikemackintosh/zed-crowdcontrol) | Tree-sitter highlighting + LSP diagnostics |
+| **Neovim / Helix / Emacs** | [mikemackintosh/tree-sitter-crowdcontrol](https://github.com/mikemackintosh/tree-sitter-crowdcontrol) | Tree-sitter grammar (drop in via your editor's parser config) |
+
+All editor support uses the same `cc-lsp` language server that ships
+in this repo (`cmd/cc-lsp`). Install it with `go install
+github.com/mikemackintosh/crowdcontrol/cmd/cc-lsp@latest` or grab a
+pre-built binary from the
+[releases page](https://github.com/mikemackintosh/crowdcontrol/releases).
+
 ## File extension
 
-CrowdControl policies use the `.cc` extension. **Note:** `.cc` is also a
-common extension for C++ source files. The bundled VS Code extension
-(`editors/vscode/`) registers itself for `.cc` and you can pin the language
-per-workspace via `files.associations`. Other editors may need a similar hint.
+CrowdControl policies use the `.cc` extension. **Note:** `.cc` is
+also a common extension for C++ source files. The editor extensions
+above register themselves for `.cc` and each one documents how to
+pin the language per-workspace when there's a conflict with the
+built-in C++ support.
 
 ## Project Layout
 
@@ -146,12 +161,12 @@ crowdcontrol/
 ├── types/               # AST, Schema, Result definitions
 ├── parser/              # lexer + parser
 ├── evaluator/           # evaluation engine + schema validator
-├── cmd/cc/              # reference CLI
-├── cmd/cc-lsp/          # LSP server for editors
+├── cmd/cc/              # reference CLI (includes `cc serve` HTTP PDP)
+├── cmd/cc-lsp/          # LSP server consumed by the editor extensions
+├── cmd/cc-wasm/         # WebAssembly shim for the docs playground
 ├── examples/            # quickstart and example policies
 ├── conformance/         # language-agnostic test suite (every SDK runs this)
-├── editors/vscode/      # VS Code extension
-└── sdks/                # native ports in other languages (Stage 2)
+└── sdks/                # native ports in 6 languages (Python, TS, Ruby, Kotlin, PHP, Go)
 ```
 
 ## Comparison with Other Policy Languages
@@ -408,7 +423,9 @@ If any gap above is a blocker for you, open an issue.
 - [DESIGN.md](./DESIGN.md) — language design rationale and full feature reference
 - [SPEC.md](./SPEC.md) — normative language specification
 - [conformance/README.md](./conformance/README.md) — conformance suite format and how to run it
-- [editors/vscode/README.md](./editors/vscode/README.md) — VS Code extension setup
+- [vscode-crowdcontrol](https://github.com/mikemackintosh/vscode-crowdcontrol) — VS Code extension (separate repo)
+- [zed-crowdcontrol](https://github.com/mikemackintosh/zed-crowdcontrol) — Zed extension (separate repo)
+- [tree-sitter-crowdcontrol](https://github.com/mikemackintosh/tree-sitter-crowdcontrol) — tree-sitter grammar (separate repo)
 
 ## License
 
